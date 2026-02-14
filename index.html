@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>안보라 국어 학원</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 헤더 -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="#home" class="logo">
+        <img src="img/logo.png" alt="안보라" class="logo-img">
+        <span class="logo-text">안보라 국어 학원</span>
+      </a>
+      <button class="hamburger" id="hamburger" aria-label="메뉴 열기">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav" id="nav">
+        <a href="#home" class="nav-link active">메인화면</a>
+        <a href="#instructors" class="nav-link">강사소개</a>
+        <a href="#curriculum" class="nav-link">교육과정</a>
+        <a href="#test" class="nav-link">입학 테스트</a>
+        <a href="#notices" class="nav-link">공지사항</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 편집 모드 바 -->
+  <div class="edit-bar" id="edit-bar">
+    <div class="edit-bar-inner">
+      <div class="edit-bar-left">
+        <span class="edit-bar-dot"></span>
+        <span>편집 모드</span>
+      </div>
+      <div class="edit-bar-actions">
+        <button onclick="exitEditMode()">편집 종료</button>
+        <button onclick="adminLogout()">로그아웃</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 컨텐츠 -->
+  <main class="main" id="main-content"></main>
+
+  <!-- 푸터 -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-links">
+        <a href="#map">약도</a>
+        <span class="divider">|</span>
+        <a href="#terms">사이트이용약관</a>
+        <span class="divider">|</span>
+        <a href="#privacy">개인정보처리방침</a>
+      </div>
+      <p class="copyright" id="copyright">&copy; 2026 안보라. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- 플로팅 전화 버튼 -->
+  <div class="fab-phone-wrap" id="fab-phone-wrap">
+    <div class="fab-phone-list" id="fab-phone-list"></div>
+    <button class="fab-phone" id="fab-phone" aria-label="전화">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 관리자 로그인 모달 -->
+  <div class="admin-login-overlay" id="admin-login-overlay">
+    <div class="admin-login-box">
+      <button type="button" class="admin-login-close" id="admin-login-close">&times;</button>
+      <form id="admin-login-form">
+        <input type="password" id="admin-pw-input" placeholder="비밀번호" autocomplete="off">
+        <button type="submit">확인</button>
+      </form>
+      <p class="admin-login-error" id="admin-login-error">비밀번호가 올바르지 않습니다.</p>
+    </div>
+  </div>
+
+  <!-- 편집 모달 -->
+  <div class="modal-overlay" id="admin-modal-overlay">
+    <div class="modal">
+      <h2 id="admin-modal-title"></h2>
+      <form id="admin-modal-form"></form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
