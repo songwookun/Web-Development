@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function adminHandleDelete(type, id) {
   if (!confirm('정말 삭제하시겠습니까?')) return;
   deleteItem(type, id);
-  if (type === 'branches') {
+  if (type === 'contacts') {
     renderPhoneList();
     return;
   }
@@ -126,47 +126,7 @@ function adminOpenModal(type, editId = null) {
   adminCurrentType = type;
   adminCurrentEditId = editId;
 
-  /* hero는 단일 객체 */
-  if (type === 'hero') {
-    const hero = getData('hero');
-    document.getElementById('admin-modal-title').textContent = '메인 배너 수정';
-    const formEl = document.getElementById('admin-modal-form');
-    formEl.innerHTML = `
-      <div class="form-group">
-        <label>강조 문구 (색상 적용)</label>
-        <input type="text" id="f-title" value="${hero.title}" placeholder="예: 국어의 힘" required>
-      </div>
-      <div class="form-group">
-        <label>이어지는 문구</label>
-        <input type="text" id="f-titleAfter" value="${hero.titleAfter}" placeholder="예: 을 키우는 곳" required>
-      </div>
-      <div class="form-group">
-        <label>설명</label>
-        <textarea id="f-subtitle" required>${hero.subtitle}</textarea>
-      </div>
-      <div class="form-group">
-        <label>배경 이미지 URL (선택 · 비우면 기본 색상)</label>
-        <input type="text" id="f-bgImage" value="${hero.bgImage || ''}" placeholder="https://...">
-      </div>
-      <div class="form-group">
-        <label>버튼 텍스트 (비우면 버튼 숨김)</label>
-        <input type="text" id="f-btnText" value="${hero.btnText || ''}" placeholder="예: 입학 테스트 신청">
-      </div>
-      <div class="form-group">
-        <label>버튼 링크</label>
-        <input type="text" id="f-btnLink" value="${hero.btnLink || ''}" placeholder="예: #test">
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
-        <button type="submit" class="btn-save">수정</button>
-      </div>
-    `;
-    formEl.onsubmit = adminHandleSubmit;
-    document.getElementById('admin-modal-overlay').classList.add('show');
-    return;
-  }
-
-  /* test_info는 단일 객체이므로 별도 처리 */
+  /* 단일 객체 타입들 */
   if (type === 'test_info') {
     const info = getData('test_info');
     document.getElementById('admin-modal-title').textContent = '테스트 안내 수정';
@@ -210,19 +170,72 @@ function adminOpenModal(type, editId = null) {
     return;
   }
 
+  if (type === 'map_info') {
+    const info = getData('map_info');
+    document.getElementById('admin-modal-title').textContent = '교통/운영 정보 수정';
+    const formEl = document.getElementById('admin-modal-form');
+    formEl.innerHTML = `
+      <div class="form-group">
+        <label>대중교통 안내 (줄바꿈으로 항목 구분)</label>
+        <textarea id="f-transport" style="min-height:100px" required>${info.transport}</textarea>
+      </div>
+      <div class="form-group">
+        <label>운영 시간</label>
+        <input type="text" id="f-hours" value="${info.hours}" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
+        <button type="submit" class="btn-save">수정</button>
+      </div>
+    `;
+    formEl.onsubmit = adminHandleSubmit;
+    document.getElementById('admin-modal-overlay').classList.add('show');
+    return;
+  }
+
   const isEdit = editId !== null;
   let item = isEdit ? getData(type).find(i => i.id === editId) : null;
 
   const titles = {
+    banners: isEdit ? '배너 수정' : '배너 추가',
     instructors: isEdit ? '강사 수정' : '강사 추가',
     curriculum: isEdit ? '교육과정 수정' : '교육과정 추가',
     notices: isEdit ? '공지사항 수정' : '공지사항 추가',
     test_steps: isEdit ? '테스트 단계 수정' : '테스트 단계 추가',
-    branches: isEdit ? '관 정보 수정' : '관 추가',
+    contacts: isEdit ? '연락처 수정' : '연락처 추가',
+    map_branches: isEdit ? '캠퍼스 수정' : '캠퍼스 추가',
+    terms: isEdit ? '약관 항목 수정' : '약관 항목 추가',
+    privacy: isEdit ? '개인정보 항목 수정' : '개인정보 항목 추가',
   };
   document.getElementById('admin-modal-title').textContent = titles[type];
 
   const forms = {
+    banners: `
+      <div class="form-group">
+        <label>강조 문구 (색상 적용)</label>
+        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 국어의 힘" required>
+      </div>
+      <div class="form-group">
+        <label>이어지는 문구</label>
+        <input type="text" id="f-titleAfter" value="${item ? item.titleAfter : ''}" placeholder="예: 을 키우는 곳" required>
+      </div>
+      <div class="form-group">
+        <label>설명</label>
+        <textarea id="f-subtitle" required>${item ? item.subtitle : ''}</textarea>
+      </div>
+      <div class="form-group">
+        <label>배경 이미지 URL (선택 · 비우면 기본 색상)</label>
+        <input type="text" id="f-bgImage" value="${item ? item.bgImage || '' : ''}" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>버튼 링크 URL (비우면 버튼 숨김)</label>
+        <input type="text" id="f-btnLink" value="${item ? item.btnLink || '' : ''}" placeholder="예: #test 또는 https://...">
+      </div>
+      <div class="form-group">
+        <label>버튼 표시 이름 (비우면 버튼 숨김)</label>
+        <input type="text" id="f-btnText" value="${item ? item.btnText || '' : ''}" placeholder="예: 입학 테스트 신청">
+      </div>
+    `,
     instructors: `
       <div class="form-group">
         <label>이름</label>
@@ -239,6 +252,14 @@ function adminOpenModal(type, editId = null) {
       <div class="form-group">
         <label>이미지 URL (선택)</label>
         <input type="text" id="f-img" value="${item ? item.img : ''}" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>소개 링크 URL (선택)</label>
+        <input type="text" id="f-link" value="${item ? item.link || '' : ''}" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>링크 표시 이름 (선택 · 비우면 "더 보기")</label>
+        <input type="text" id="f-linkLabel" value="${item ? item.linkLabel || '' : ''}" placeholder="예: 더 보기">
       </div>
     `,
     curriculum: `
@@ -293,14 +314,64 @@ function adminOpenModal(type, editId = null) {
         <textarea id="f-desc" required>${item ? item.desc : ''}</textarea>
       </div>
     `,
-    branches: `
+    contacts: `
       <div class="form-group">
-        <label>관 이름</label>
-        <input type="text" id="f-name" value="${item ? item.name : ''}" placeholder="예: 본관" required>
+        <label>이름</label>
+        <input type="text" id="f-name" value="${item ? item.name : ''}" placeholder="예: 본관, 카카오톡 상담" required>
       </div>
       <div class="form-group">
-        <label>전화번호</label>
-        <input type="tel" id="f-phone" value="${item ? item.phone : ''}" placeholder="예: 02-1234-5678" required>
+        <label>전화번호 (선택 · 비우면 링크로 이동)</label>
+        <input type="tel" id="f-phone" value="${item ? item.phone || '' : ''}" placeholder="예: 02-1234-5678">
+      </div>
+      <div class="form-group">
+        <label>링크 URL (선택)</label>
+        <input type="text" id="f-link" value="${item ? item.link || '' : ''}" placeholder="예: https://pf.kakao.com/...">
+      </div>
+      <div class="form-group">
+        <label>링크 표시 이름 (선택)</label>
+        <input type="text" id="f-linkLabel" value="${item ? item.linkLabel || '' : ''}" placeholder="예: 카카오톡 상담">
+      </div>
+    `,
+    map_branches: `
+      <div class="form-group">
+        <label>캠퍼스 이름</label>
+        <input type="text" id="f-name" value="${item ? item.name : ''}" placeholder="예: 아르누보관" required>
+      </div>
+      <div class="form-group">
+        <label>라벨 (선택 · 예: 메인)</label>
+        <input type="text" id="f-label" value="${item ? item.label || '' : ''}" placeholder="예: 메인">
+      </div>
+      <div class="form-group">
+        <label>주소</label>
+        <input type="text" id="f-addr" value="${item ? item.addr : ''}" required>
+      </div>
+      <div class="form-group">
+        <label>참고 사항 (선택)</label>
+        <input type="text" id="f-note" value="${item ? item.note || '' : ''}" placeholder="예: 한티역 1번 출구 오른쪽 약 100m">
+      </div>
+      <div class="form-group">
+        <label>지도 검색어</label>
+        <input type="text" id="f-mapQuery" value="${item ? item.mapQuery : ''}" placeholder="예: 서울 강남구 도곡로 405" required>
+      </div>
+    `,
+    terms: `
+      <div class="form-group">
+        <label>제목</label>
+        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 제1조 (목적)" required>
+      </div>
+      <div class="form-group">
+        <label>내용 ("- "로 시작하면 목록으로 표시)</label>
+        <textarea id="f-content" style="min-height:150px" required>${item ? item.content : ''}</textarea>
+      </div>
+    `,
+    privacy: `
+      <div class="form-group">
+        <label>제목</label>
+        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 1. 개인정보의 수집 및 이용 목적" required>
+      </div>
+      <div class="form-group">
+        <label>내용 ("- "로 시작하면 목록으로 표시)</label>
+        <textarea id="f-content" style="min-height:150px" required>${item ? item.content : ''}</textarea>
       </div>
     `,
   };
@@ -326,23 +397,7 @@ function adminCloseModal() {
 function adminHandleSubmit(e) {
   e.preventDefault();
 
-  /* hero 단일 객체 저장 */
-  if (adminCurrentType === 'hero') {
-    const hero = {
-      title: document.getElementById('f-title').value.trim(),
-      titleAfter: document.getElementById('f-titleAfter').value.trim(),
-      subtitle: document.getElementById('f-subtitle').value.trim(),
-      bgImage: document.getElementById('f-bgImage').value.trim(),
-      btnText: document.getElementById('f-btnText').value.trim(),
-      btnLink: document.getElementById('f-btnLink').value.trim(),
-    };
-    saveData('hero', hero);
-    adminCloseModal();
-    navigate();
-    return;
-  }
-
-  /* test_info는 단일 객체 저장 */
+  /* 단일 객체 저장 */
   if (adminCurrentType === 'test_info') {
     const info = {
       schedule: document.getElementById('f-schedule').value.trim(),
@@ -359,12 +414,33 @@ function adminHandleSubmit(e) {
     return;
   }
 
+  if (adminCurrentType === 'map_info') {
+    const info = {
+      transport: document.getElementById('f-transport').value.trim(),
+      hours: document.getElementById('f-hours').value.trim(),
+    };
+    saveData('map_info', info);
+    adminCloseModal();
+    navigate();
+    return;
+  }
+
   const collectors = {
+    banners: () => ({
+      title: document.getElementById('f-title').value.trim(),
+      titleAfter: document.getElementById('f-titleAfter').value.trim(),
+      subtitle: document.getElementById('f-subtitle').value.trim(),
+      bgImage: document.getElementById('f-bgImage').value.trim(),
+      btnText: document.getElementById('f-btnText').value.trim(),
+      btnLink: document.getElementById('f-btnLink').value.trim(),
+    }),
     instructors: () => ({
       name: document.getElementById('f-name').value.trim(),
       position: document.getElementById('f-position').value.trim(),
       desc: document.getElementById('f-desc').value.trim(),
       img: document.getElementById('f-img').value.trim(),
+      link: document.getElementById('f-link').value.trim(),
+      linkLabel: document.getElementById('f-linkLabel').value.trim(),
     }),
     curriculum: () => ({
       title: document.getElementById('f-title').value.trim(),
@@ -383,15 +459,32 @@ function adminHandleSubmit(e) {
       title: document.getElementById('f-title').value.trim(),
       desc: document.getElementById('f-desc').value.trim(),
     }),
-    branches: () => ({
+    contacts: () => ({
       name: document.getElementById('f-name').value.trim(),
       phone: document.getElementById('f-phone').value.trim(),
+      link: document.getElementById('f-link').value.trim(),
+      linkLabel: document.getElementById('f-linkLabel').value.trim(),
+    }),
+    map_branches: () => ({
+      name: document.getElementById('f-name').value.trim(),
+      label: document.getElementById('f-label').value.trim(),
+      addr: document.getElementById('f-addr').value.trim(),
+      note: document.getElementById('f-note').value.trim(),
+      mapQuery: document.getElementById('f-mapQuery').value.trim(),
+    }),
+    terms: () => ({
+      title: document.getElementById('f-title').value.trim(),
+      content: document.getElementById('f-content').value.trim(),
+    }),
+    privacy: () => ({
+      title: document.getElementById('f-title').value.trim(),
+      content: document.getElementById('f-content').value.trim(),
     }),
   };
 
   const data = collectors[adminCurrentType]();
 
-  const isBranch = adminCurrentType === 'branches';
+  const isContact = adminCurrentType === 'contacts';
 
   if (adminCurrentEditId !== null) {
     updateItem(adminCurrentType, adminCurrentEditId, data);
@@ -400,7 +493,7 @@ function adminHandleSubmit(e) {
   }
 
   adminCloseModal();
-  if (isBranch) {
+  if (isContact) {
     renderPhoneList();
   } else {
     navigate();

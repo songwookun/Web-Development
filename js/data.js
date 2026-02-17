@@ -6,8 +6,12 @@ const DB_KEYS = {
   notices: 'academy_notices',
   test_steps: 'academy_test_steps',
   test_info: 'academy_test_info',
-  branches: 'academy_branches',
-  hero: 'academy_hero',
+  contacts: 'academy_contacts',
+  banners: 'academy_banners',
+  map_branches: 'academy_map_branches',
+  map_info: 'academy_map_info',
+  terms: 'academy_terms',
+  privacy: 'academy_privacy',
 };
 
 /* ---------- 기본 데이터 ---------- */
@@ -18,6 +22,8 @@ const DEFAULT_INSTRUCTORS = [
     position: '대표 강사 · 국어 문학',
     desc: '서울대학교 국어국문학과 졸업. 15년간 수능 국어 강의 경력. 문학 영역 전문.',
     img: '',
+    link: '',
+    linkLabel: '',
   },
   {
     id: 2,
@@ -25,6 +31,8 @@ const DEFAULT_INSTRUCTORS = [
     position: '수석 강사 · 비문학/독서',
     desc: '고려대학교 국어교육과 졸업. EBS 연계 교재 집필 참여. 비문학 독해 전략 전문.',
     img: '',
+    link: '',
+    linkLabel: '',
   },
   {
     id: 3,
@@ -32,6 +40,8 @@ const DEFAULT_INSTRUCTORS = [
     position: '전임 강사 · 문법/언어',
     desc: '연세대학교 국어학 석사. 언어와 매체, 문법 영역 전문. 친절한 개념 설명.',
     img: '',
+    link: '',
+    linkLabel: '',
   },
 ];
 
@@ -125,19 +135,50 @@ const DEFAULT_TEST_INFO = {
   formUrl: '',
 };
 
-const DEFAULT_HERO = {
-  title: '국어의 힘',
-  titleAfter: '을 키우는 곳',
-  subtitle: '체계적인 커리큘럼과 최고의 강사진이 함께하는 안보라에서 국어 실력의 차이를 만들어 보세요.',
-  bgImage: '',
-  btnText: '입학 테스트 신청',
-  btnLink: '#test',
+const DEFAULT_BANNERS = [
+  {
+    id: 1,
+    title: '국어의 힘',
+    titleAfter: '을 키우는 곳',
+    subtitle: '체계적인 커리큘럼과 최고의 강사진이 함께하는 안보라에서 국어 실력의 차이를 만들어 보세요.',
+    bgImage: '',
+    btnText: '입학 테스트 신청',
+    btnLink: '#test',
+  },
+];
+
+const DEFAULT_CONTACTS = [
+  { id: 1, name: '본관', phone: '02-556-8383', link: '', linkLabel: '' },
+  { id: 2, name: '카카오톡 상담', phone: '', link: 'https://pf.kakao.com/', linkLabel: '카카오톡 상담' },
+  { id: 3, name: '네이버 카페', phone: '', link: 'https://cafe.naver.com/', linkLabel: '네이버 카페' },
+];
+
+const DEFAULT_MAP_BRANCHES = [
+  { id: 1, name: '아르누보관', label: '메인', addr: '서울특별시 강남구 도곡로 405, 삼환아르누보 2차 3층', note: '', mapQuery: '서울 강남구 도곡로 405' },
+  { id: 2, name: '한티관', label: '', addr: '서울특별시 강남구 선릉로 318, 동궁상가 2층', note: '한티역 1번 출구 오른쪽 약 100m, 노브랜드 건물 2층', mapQuery: '서울 강남구 선릉로 318' },
+  { id: 3, name: '디마크관', label: '', addr: '서울특별시 강남구 도곡로 408, 디마크빌딩 5층 509호', note: '한티역 3번 출구 약 110m', mapQuery: '서울 강남구 도곡로 408' },
+];
+
+const DEFAULT_MAP_INFO = {
+  transport: '지하철: 수인분당선 한티역 1번 · 3번 출구\n버스: 한티역 정류장 하차 (강남06, 4412)',
+  hours: '화~금 15:00 ~ 22:00 / 토~일 10:00 ~ 22:00 / 월요일 정기 휴무',
 };
 
-const DEFAULT_BRANCHES = [
-  { id: 1, name: '아르누보관', phone: '02-556-8383' },
-  { id: 2, name: '한티관', phone: '0508-0356-5425' },
-  { id: 3, name: '디마크관', phone: '02-556-8383' },
+const DEFAULT_TERMS = [
+  { id: 1, title: '제1조 (목적)', content: '본 약관은 안보라(이하 "학원")이 운영하는 웹사이트(이하 "사이트")에서 제공하는 서비스의 이용과 관련하여 학원과 이용자 간의 권리·의무 및 기타 필요한 사항을 규정함을 목적으로 합니다.' },
+  { id: 2, title: '제2조 (용어의 정의)', content: '"사이트"란 학원이 교육 서비스 및 관련 정보를 제공하기 위해 운영하는 인터넷 웹사이트를 말합니다.\n"이용자"란 본 사이트에 접속하여 약관에 따라 학원이 제공하는 서비스를 이용하는 자를 말합니다.' },
+  { id: 3, title: '제3조 (약관의 효력 및 변경)', content: '본 약관은 사이트에 공시함으로써 효력이 발생합니다. 학원은 관련 법령에 위배되지 않는 범위 내에서 약관을 변경할 수 있으며, 변경된 약관은 사이트에 공시한 날로부터 효력이 발생합니다.' },
+  { id: 4, title: '제4조 (서비스의 제공)', content: '학원은 다음과 같은 서비스를 제공합니다.\n- 교육과정 및 강사 소개 정보 제공\n- 입학 테스트 안내\n- 공지사항 및 학원 소식 제공' },
+  { id: 5, title: '제5조 (면책사항)', content: '학원은 천재지변, 불가항력, 또는 이에 준하는 사유로 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.' },
+];
+
+const DEFAULT_PRIVACY = [
+  { id: 1, title: '1. 개인정보의 수집 및 이용 목적', content: '안보라은 다음 목적을 위해 개인정보를 수집·이용합니다. 수집한 개인정보는 아래 목적 이외의 용도로 이용되지 않으며, 목적이 변경될 경우 사전에 동의를 구합니다.\n- 수강 상담 및 입학 테스트 예약\n- 교육 서비스 제공 및 학습 관리\n- 공지사항 전달' },
+  { id: 2, title: '2. 수집하는 개인정보 항목', content: '성명, 연락처(전화번호), 학년, 학교명' },
+  { id: 3, title: '3. 개인정보의 보유 및 이용 기간', content: '수집된 개인정보는 수집 목적이 달성된 후 지체 없이 파기합니다. 단, 관계 법령에 의해 보존할 필요가 있는 경우 해당 법령에서 정한 기간 동안 보존합니다.' },
+  { id: 4, title: '4. 개인정보의 파기 절차 및 방법', content: '보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 재생이 불가능한 방법으로 파기합니다.' },
+  { id: 5, title: '5. 개인정보 보호 책임자', content: '성명: 안보라\n직위: 원장\n연락처: 02-556-8383\n이메일: privacy@anboraedu.co.kr' },
+  { id: 6, title: '6. 정책 변경', content: '본 개인정보처리방침은 2026년 1월 1일부터 시행됩니다. 변경 사항이 있을 경우 사이트를 통해 공지합니다.' },
 ];
 
 /* ---------- CRUD 함수 ---------- */
@@ -145,15 +186,18 @@ function getData(key) {
   const raw = localStorage.getItem(DB_KEYS[key]);
   if (raw) return JSON.parse(raw);
 
-  // 기본 데이터 저장 후 반환
   const defaults = {
     instructors: DEFAULT_INSTRUCTORS,
     curriculum: DEFAULT_CURRICULUM,
     notices: DEFAULT_NOTICES,
     test_steps: DEFAULT_TEST_STEPS,
     test_info: DEFAULT_TEST_INFO,
-    branches: DEFAULT_BRANCHES,
-    hero: DEFAULT_HERO,
+    contacts: DEFAULT_CONTACTS,
+    banners: DEFAULT_BANNERS,
+    map_branches: DEFAULT_MAP_BRANCHES,
+    map_info: DEFAULT_MAP_INFO,
+    terms: DEFAULT_TERMS,
+    privacy: DEFAULT_PRIVACY,
   };
   localStorage.setItem(DB_KEYS[key], JSON.stringify(defaults[key]));
   return defaults[key];

@@ -4,6 +4,49 @@ const mainEl = document.getElementById('main-content');
 const navEl = document.getElementById('nav');
 const hamburgerEl = document.getElementById('hamburger');
 
+/* ---------- 배너 슬라이더 ---------- */
+let bannerInterval = null;
+let currentBannerIdx = 0;
+
+function stopBannerSlider() {
+  if (bannerInterval) {
+    clearInterval(bannerInterval);
+    bannerInterval = null;
+  }
+}
+
+function startBannerSlider() {
+  stopBannerSlider();
+  const banners = getData('banners');
+  if (banners.length <= 1) return;
+  currentBannerIdx = 0;
+  bannerInterval = setInterval(() => {
+    currentBannerIdx = (currentBannerIdx + 1) % banners.length;
+    updateBannerPosition();
+  }, 5000);
+}
+
+function updateBannerPosition() {
+  const track = document.querySelector('.banner-track');
+  const dots = document.querySelectorAll('.banner-dot');
+  if (!track) return;
+  track.style.transform = `translateX(-${currentBannerIdx * 100}%)`;
+  dots.forEach((dot, i) => dot.classList.toggle('active', i === currentBannerIdx));
+}
+
+function goToBanner(idx) {
+  const banners = getData('banners');
+  currentBannerIdx = idx;
+  updateBannerPosition();
+  if (banners.length > 1) {
+    stopBannerSlider();
+    bannerInterval = setInterval(() => {
+      currentBannerIdx = (currentBannerIdx + 1) % banners.length;
+      updateBannerPosition();
+    }, 5000);
+  }
+}
+
 /* ---------- 편집 컨트롤 헬퍼 ---------- */
 function editBtns(type, id) {
   return `<div class="card-edit-actions">
@@ -28,6 +71,31 @@ function noticeEditBtns(id) {
   </span>`;
 }
 
+/* ---------- 강사 링크 헬퍼 ---------- */
+function instructorLinkHtml(i) {
+  if (!i.link) return '';
+  return `<a href="${i.link}" target="_blank" rel="noopener" class="instructor-link">${i.linkLabel || '더 보기'}</a>`;
+}
+
+/* ---------- 섹션 내용 렌더링 헬퍼 ---------- */
+function renderSectionContent(content) {
+  const lines = content.split('\n');
+  let html = '';
+  let inList = false;
+
+  for (const line of lines) {
+    if (line.startsWith('- ')) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${line.slice(2)}</li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      if (line.trim()) html += `<p>${line}</p>`;
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
 /* ---------- 라우터 ---------- */
 function getRoute() {
   const hash = location.hash.slice(1) || 'home';
@@ -36,6 +104,7 @@ function getRoute() {
 }
 
 function navigate() {
+  stopBannerSlider();
   const { page, param } = getRoute();
   window.scrollTo(0, 0);
 
@@ -93,23 +162,42 @@ const fabPhoneList = document.getElementById('fab-phone-list');
 const fabPhoneWrap = document.getElementById('fab-phone-wrap');
 
 function renderPhoneList() {
-  const branches = getData('branches');
-  fabPhoneList.innerHTML = branches.map(b => `
-    <div class="fab-phone-item">
-      <a href="tel:${b.phone.replace(/[^0-9+]/g, '')}" class="fab-phone-link">
-        <span class="fab-phone-name">${b.name}</span>
-        <span class="fab-phone-num">${b.phone}</span>
-      </a>
-      <span class="fab-phone-edit" onclick="event.stopPropagation();adminOpenModal('branches',${b.id})">
-        <button class="btn-edit">수정</button>
-      </span>
-      <span class="fab-phone-edit" onclick="event.stopPropagation();adminHandleDelete('branches',${b.id})">
-        <button class="btn-delete">삭제</button>
-      </span>
-    </div>
-  `).join('') + `
-    <div class="fab-phone-item fab-phone-add" onclick="event.stopPropagation();adminOpenModal('branches')">
-      <span>+ 관 추가</span>
+  const contacts = getData('contacts');
+  fabPhoneList.innerHTML = contacts.map(c => {
+    const hasPhone = c.phone && c.phone.trim();
+    const hasLink = c.link && c.link.trim();
+
+    let href, targetAttr, display;
+    if (hasPhone) {
+      href = `tel:${c.phone.replace(/[^0-9+]/g, '')}`;
+      targetAttr = '';
+      display = `<span class="fab-phone-name">${c.name}</span><span class="fab-phone-num">${c.phone}</span>`;
+    } else if (hasLink) {
+      href = c.link;
+      targetAttr = ' target="_blank" rel="noopener"';
+      display = `<span class="fab-phone-name">${c.name}</span><span class="fab-phone-num">${c.linkLabel || '바로가기'}</span>`;
+    } else {
+      href = '#';
+      targetAttr = '';
+      display = `<span class="fab-phone-name">${c.name}</span>`;
+    }
+
+    return `
+      <div class="fab-phone-item">
+        <a href="${href}"${targetAttr} class="fab-phone-link">
+          ${display}
+        </a>
+        <span class="fab-phone-edit" onclick="event.stopPropagation();adminOpenModal('contacts',${c.id})">
+          <button class="btn-edit">수정</button>
+        </span>
+        <span class="fab-phone-edit" onclick="event.stopPropagation();adminHandleDelete('contacts',${c.id})">
+          <button class="btn-delete">삭제</button>
+        </span>
+      </div>
+    `;
+  }).join('') + `
+    <div class="fab-phone-item fab-phone-add" onclick="event.stopPropagation();adminOpenModal('contacts')">
+      <span>+ 연락처 추가</span>
     </div>
   `;
 }
@@ -135,21 +223,37 @@ function renderHome() {
   const instructors = getData('instructors').slice(0, 3);
   const curriculum = getData('curriculum').slice(0, 3);
   const notices = getData('notices').slice(0, 5);
-  const hero = getData('hero');
+  const banners = getData('banners');
 
-  const heroStyle = hero.bgImage
-    ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${hero.bgImage}') center/cover no-repeat;`
+  const bannerSlides = banners.map(b => {
+    const bgStyle = b.bgImage
+      ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${b.bgImage}') center/cover no-repeat;`
+      : '';
+    return `
+      <div class="banner-slide hero" ${bgStyle ? 'style="' + bgStyle + '"' : ''}>
+        <div class="banner-edit-wrap">
+          <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',${b.id})">수정</button>
+          <button class="btn-delete hero-edit-btn" onclick="adminHandleDelete('banners',${b.id})">삭제</button>
+        </div>
+        <h1><span class="accent">${b.title}</span>${b.titleAfter}</h1>
+        <p>${b.subtitle}</p>
+        ${b.btnText && b.btnLink ? `<a href="${b.btnLink}" class="hero-btn">${b.btnText}</a>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const bannerDots = banners.length > 1
+    ? `<div class="banner-dots">${banners.map((_, i) => `<span class="banner-dot${i === 0 ? ' active' : ''}" onclick="goToBanner(${i})"></span>`).join('')}</div>`
     : '';
 
   mainEl.innerHTML = `
-    <!-- 히어로 -->
-    <section class="hero" ${heroStyle ? 'style="' + heroStyle + '"' : ''}>
-      <div class="hero-edit-wrap">
-        <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('hero')">배너 수정</button>
+    <!-- 배너 슬라이더 -->
+    <section class="banner-slider">
+      <div class="banner-track">${bannerSlides}</div>
+      ${bannerDots}
+      <div class="banner-add-wrap">
+        <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners')">+ 배너 추가</button>
       </div>
-      <h1><span class="accent">${hero.title}</span>${hero.titleAfter}</h1>
-      <p>${hero.subtitle}</p>
-      ${hero.btnText ? `<a href="${hero.btnLink || '#'}" class="hero-btn">${hero.btnText}</a>` : ''}
     </section>
 
     <!-- 강사진 미리보기 -->
@@ -166,6 +270,7 @@ function renderHome() {
               <h3>${i.name}</h3>
               <p class="position">${i.position}</p>
               <p>${i.desc}</p>
+              ${instructorLinkHtml(i)}
               ${editBtns('instructors', i.id)}
             </div>
           </div>
@@ -233,6 +338,8 @@ function renderHome() {
       </div>
     </section>
   `;
+
+  startBannerSlider();
 }
 
 /* ---------- 강사소개 페이지 ---------- */
@@ -252,6 +359,7 @@ function renderInstructors() {
               <h3>${i.name}</h3>
               <p class="position">${i.position}</p>
               <p>${i.desc}</p>
+              ${instructorLinkHtml(i)}
               ${editBtns('instructors', i.id)}
             </div>
           </div>
@@ -419,12 +527,11 @@ function renderNoticeDetail(id) {
 
 /* ---------- 약도 ---------- */
 function renderMap() {
-  const branches = getData('branches');
-  const branchInfo = [
-    { name: '아르누보관', label: '메인', addr: '서울특별시 강남구 도곡로 405, 삼환아르누보 2차 3층', note: '', mapQuery: '서울 강남구 도곡로 405' },
-    { name: '한티관', label: '', addr: '서울특별시 강남구 선릉로 318, 동궁상가 2층', note: '한티역 1번 출구 오른쪽 약 100m, 노브랜드 건물 2층', mapQuery: '서울 강남구 선릉로 318' },
-    { name: '디마크관', label: '', addr: '서울특별시 강남구 도곡로 408, 디마크빌딩 5층 509호', note: '한티역 3번 출구 약 110m', mapQuery: '서울 강남구 도곡로 408' },
-  ];
+  const contacts = getData('contacts');
+  const branches = getData('map_branches');
+  const mapInfo = getData('map_info');
+
+  const transportLines = mapInfo.transport.split('\n').filter(l => l.trim());
 
   mainEl.innerHTML = `
     <div class="page-header">
@@ -433,7 +540,7 @@ function renderMap() {
     </div>
     <div class="info-page">
 
-      ${branchInfo.map(b => `
+      ${branches.map(b => `
         <div class="map-branch-card">
           <div class="map-branch-header">
             <h3>${b.name} ${b.label ? '<span class="map-branch-label">' + b.label + '</span>' : ''}</h3>
@@ -444,88 +551,97 @@ function renderMap() {
           </div>
           <p class="map-branch-addr">${b.addr}</p>
           ${b.note ? '<p class="map-branch-note">' + b.note + '</p>' : ''}
+          ${editBtns('map_branches', b.id)}
         </div>
       `).join('')}
 
-      <h3>대중교통 안내</h3>
-      <ul>
-        <li><strong>지하철:</strong> 수인분당선 한티역 1번 · 3번 출구</li>
-        <li><strong>버스:</strong> 한티역 정류장 하차 (강남06, 4412)</li>
-      </ul>
+      <div class="map-add-card add-card" onclick="adminOpenModal('map_branches')">
+        <div class="add-card-inner">
+          <span class="add-icon">+</span>
+          <span>캠퍼스 추가</span>
+        </div>
+      </div>
+
+      <div class="map-extra-section">
+        <div class="map-extra-edit">
+          <button class="btn-edit" onclick="adminOpenModal('map_info')">수정</button>
+        </div>
+        <h3>대중교통 안내</h3>
+        <ul>
+          ${transportLines.map(l => {
+            const ci = l.indexOf(':');
+            if (ci > -1) return `<li><strong>${l.slice(0, ci + 1)}</strong>${l.slice(ci + 1)}</li>`;
+            return `<li>${l}</li>`;
+          }).join('')}
+        </ul>
+        <p style="margin-top:12px;"><strong>운영 시간:</strong> ${mapInfo.hours}</p>
+      </div>
 
       <h3>연락처</h3>
       <div class="branch-contact-list">
-        ${branches.map(b => `
-          <div class="branch-contact-item">
-            <strong>${b.name}</strong>
-            <a href="tel:${b.phone.replace(/[^0-9+]/g, '')}">${b.phone}</a>
-          </div>
-        `).join('')}
+        ${contacts.map(c => {
+          const hasPhone = c.phone && c.phone.trim();
+          const hasLink = c.link && c.link.trim();
+          let contactHtml = `<strong>${c.name}</strong>`;
+          if (hasPhone) {
+            contactHtml += `<a href="tel:${c.phone.replace(/[^0-9+]/g, '')}">${c.phone}</a>`;
+          }
+          if (hasLink) {
+            contactHtml += `<a href="${c.link}" target="_blank" rel="noopener" class="contact-ext-link">${c.linkLabel || '바로가기'}</a>`;
+          }
+          return `<div class="branch-contact-item">${contactHtml}</div>`;
+        }).join('')}
       </div>
-      <p style="margin-top:12px;">운영 시간: 화~금 15:00 ~ 22:00 / 토~일 10:00 ~ 22:00 / 월요일 정기 휴무</p>
     </div>
   `;
 }
 
 /* ---------- 이용약관 ---------- */
 function renderTerms() {
+  const sections = getData('terms');
   mainEl.innerHTML = `
     <div class="page-header">
       <h2>사이트 이용약관</h2>
     </div>
     <div class="info-page">
-      <h3>제1조 (목적)</h3>
-      <p>본 약관은 안보라(이하 "학원")이 운영하는 웹사이트(이하 "사이트")에서 제공하는 서비스의 이용과 관련하여 학원과 이용자 간의 권리·의무 및 기타 필요한 사항을 규정함을 목적으로 합니다.</p>
-
-      <h3>제2조 (용어의 정의)</h3>
-      <p>"사이트"란 학원이 교육 서비스 및 관련 정보를 제공하기 위해 운영하는 인터넷 웹사이트를 말합니다.<br>"이용자"란 본 사이트에 접속하여 약관에 따라 학원이 제공하는 서비스를 이용하는 자를 말합니다.</p>
-
-      <h3>제3조 (약관의 효력 및 변경)</h3>
-      <p>본 약관은 사이트에 공시함으로써 효력이 발생합니다. 학원은 관련 법령에 위배되지 않는 범위 내에서 약관을 변경할 수 있으며, 변경된 약관은 사이트에 공시한 날로부터 효력이 발생합니다.</p>
-
-      <h3>제4조 (서비스의 제공)</h3>
-      <p>학원은 다음과 같은 서비스를 제공합니다.</p>
-      <ul>
-        <li>교육과정 및 강사 소개 정보 제공</li>
-        <li>입학 테스트 안내</li>
-        <li>공지사항 및 학원 소식 제공</li>
-      </ul>
-
-      <h3>제5조 (면책사항)</h3>
-      <p>학원은 천재지변, 불가항력, 또는 이에 준하는 사유로 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.</p>
+      ${sections.map(s => `
+        <div class="legal-section">
+          <h3>${s.title}</h3>
+          ${renderSectionContent(s.content)}
+          ${editBtns('terms', s.id)}
+        </div>
+      `).join('')}
+      <div class="legal-add add-card" onclick="adminOpenModal('terms')">
+        <div class="add-card-inner">
+          <span class="add-icon">+</span>
+          <span>항목 추가</span>
+        </div>
+      </div>
     </div>
   `;
 }
 
 /* ---------- 개인정보처리방침 ---------- */
 function renderPrivacy() {
+  const sections = getData('privacy');
   mainEl.innerHTML = `
     <div class="page-header">
       <h2>개인정보처리방침</h2>
     </div>
     <div class="info-page">
-      <h3>1. 개인정보의 수집 및 이용 목적</h3>
-      <p>안보라은 다음 목적을 위해 개인정보를 수집·이용합니다. 수집한 개인정보는 아래 목적 이외의 용도로 이용되지 않으며, 목적이 변경될 경우 사전에 동의를 구합니다.</p>
-      <ul>
-        <li>수강 상담 및 입학 테스트 예약</li>
-        <li>교육 서비스 제공 및 학습 관리</li>
-        <li>공지사항 전달</li>
-      </ul>
-
-      <h3>2. 수집하는 개인정보 항목</h3>
-      <p>성명, 연락처(전화번호), 학년, 학교명</p>
-
-      <h3>3. 개인정보의 보유 및 이용 기간</h3>
-      <p>수집된 개인정보는 수집 목적이 달성된 후 지체 없이 파기합니다. 단, 관계 법령에 의해 보존할 필요가 있는 경우 해당 법령에서 정한 기간 동안 보존합니다.</p>
-
-      <h3>4. 개인정보의 파기 절차 및 방법</h3>
-      <p>보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 재생이 불가능한 방법으로 파기합니다.</p>
-
-      <h3>5. 개인정보 보호 책임자</h3>
-      <p>성명: 안보라<br>직위: 원장<br>연락처: 02-556-8383<br>이메일: privacy@anboraedu.co.kr</p>
-
-      <h3>6. 정책 변경</h3>
-      <p>본 개인정보처리방침은 2026년 1월 1일부터 시행됩니다. 변경 사항이 있을 경우 사이트를 통해 공지합니다.</p>
+      ${sections.map(s => `
+        <div class="legal-section">
+          <h3>${s.title}</h3>
+          ${renderSectionContent(s.content)}
+          ${editBtns('privacy', s.id)}
+        </div>
+      `).join('')}
+      <div class="legal-add add-card" onclick="adminOpenModal('privacy')">
+        <div class="add-card-inner">
+          <span class="add-icon">+</span>
+          <span>항목 추가</span>
+        </div>
+      </div>
     </div>
   `;
 }
