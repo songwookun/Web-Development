@@ -71,10 +71,15 @@ function noticeEditBtns(id) {
   </span>`;
 }
 
-/* ---------- 강사 링크 헬퍼 ---------- */
+/* ---------- 링크 헬퍼 (강사, 교육과정 공용) ---------- */
 function instructorLinkHtml(i) {
   if (!i.link) return '';
   return `<a href="${i.link}" target="_blank" rel="noopener" class="instructor-link">${i.linkLabel || '더 보기'}</a>`;
+}
+
+function curriculumLinkHtml(c) {
+  if (!c.link) return '';
+  return `<a href="${c.link}" target="_blank" rel="noopener" class="instructor-link">${c.linkLabel || '더 보기'}</a>`;
 }
 
 /* ---------- 섹션 내용 렌더링 헬퍼 ---------- */
@@ -301,6 +306,7 @@ async function renderHome() {
               <span class="card-tag">${c.tag}</span>
               <h3>${c.title}</h3>
               <p>${c.desc}</p>
+              ${curriculumLinkHtml(c)}
               ${editBtns('curriculum', c.id)}
             </div>
           </div>
@@ -396,6 +402,7 @@ async function renderCurriculum() {
               <h3>${c.title}</h3>
               <p>${c.desc}</p>
               <p style="margin-top:12px;font-size:0.85rem;"><strong>대상:</strong> ${c.target}<br><strong>시간:</strong> ${c.schedule}</p>
+              ${curriculumLinkHtml(c)}
               ${editBtns('curriculum', c.id)}
             </div>
           </div>

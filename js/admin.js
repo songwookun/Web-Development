@@ -355,6 +355,14 @@ async function adminOpenModal(type, editId = null) {
         <label>수업 시간</label>
         <input type="text" id="f-schedule" value="${item ? item.schedule : ''}" placeholder="예: 월/수/금 16:00 ~ 18:00" required>
       </div>
+      <div class="form-group">
+        <label>링크 URL (선택)</label>
+        <input type="text" id="f-link" value="${item ? item.link || '' : ''}" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>링크 표시 이름 (선택 · 비우면 "더 보기")</label>
+        <input type="text" id="f-linkLabel" value="${item ? item.linkLabel || '' : ''}" placeholder="예: 더 보기">
+      </div>
     `,
     notices: `
       <div class="form-group">
@@ -527,6 +535,8 @@ async function adminHandleSubmit(e) {
         desc: document.getElementById('f-desc').value.trim(),
         target: document.getElementById('f-target').value.trim(),
         schedule: document.getElementById('f-schedule').value.trim(),
+        link: document.getElementById('f-link').value.trim(),
+        linkLabel: document.getElementById('f-linkLabel').value.trim(),
       }),
       notices: () => ({
         title: document.getElementById('f-title').value.trim(),
