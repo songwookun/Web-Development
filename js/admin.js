@@ -1,38 +1,57 @@
-/* ========== 관리자 기능 (인라인 편집) ========== */
-
-/* 비밀번호의 SHA-256 해시값만 저장 (원문 노출 방지) */
-/* 비밀번호 변경 시: 브라우저 콘솔에서 아래 실행 후 해시값 교체
-   crypto.subtle.digest('SHA-256', new TextEncoder().encode('새비밀번호'))
-     .then(h => console.log(Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')))
-*/
-const ADMIN_PW_HASH = '46aa9cb46bbe70bb3e069a6ff398999a6fdba5df240e6c05d3b97cada96d8572';
+/* ========== 관리자 기능 (Supabase Auth) ========== */
+/* 기존 SHA-256 해시 비교 방식 → Supabase Auth 이메일/비밀번호 로그인 */
 
 let adminCurrentType = '';
 let adminCurrentEditId = null;
 
-/* ---------- 인증 ---------- */
-function adminIsAuthed() {
-  return sessionStorage.getItem('admin_auth') === '1';
-}
+/* ---------- 인증 상태 관리 ---------- */
+/* Supabase Auth 세션을 추적하는 플래그 (동기적으로 확인 가능) */
+let _isAdmin = false;
 
-async function hashPassword(pw) {
-  const data = new TextEncoder().encode(pw);
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
+/* 페이지 로드 시 기존 세션 확인 */
+supabaseClient.auth.getSession().then(({ data: { session } }) => {
+  _isAdmin = !!session;
+});
 
-async function adminLogin(pw) {
-  const hash = await hashPassword(pw);
-  if (hash === ADMIN_PW_HASH) {
-    sessionStorage.setItem('admin_auth', '1');
-    return true;
+/* 로그인/로그아웃 이벤트 자동 감지 */
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  _isAdmin = !!session;
+  /* 세션이 없으면 편집 모드 해제 */
+  if (!session) {
+    document.body.classList.remove('edit-mode');
   }
-  return false;
+});
+
+/* 현재 관리자 로그인 상태 확인 (동기 함수 - 기존 호출부 호환) */
+function adminIsAuthed() {
+  return _isAdmin;
 }
 
-function adminLogout() {
-  sessionStorage.removeItem('admin_auth');
+/* ---------- 로그인 ---------- */
+async function adminLogin(email, password) {
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    console.error('로그인 오류:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/* ---------- 로그아웃 ---------- */
+async function adminLogout() {
+  await supabaseClient.auth.signOut();
   document.body.classList.remove('edit-mode');
+}
+
+/* ---------- 비밀번호 변경 ---------- */
+async function adminChangePw(newPassword) {
+  const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+  if (error) {
+    alert('비밀번호 변경 실패: ' + error.message);
+    return false;
+  }
+  alert('비밀번호가 변경되었습니다.');
+  return true;
 }
 
 /* ---------- 편집 모드 ---------- */
@@ -47,21 +66,37 @@ function exitEditMode() {
 /* ---------- 로그인 모달 ---------- */
 function adminShowLogin() {
   const overlay = document.getElementById('admin-login-overlay');
-  const input = document.getElementById('admin-pw-input');
+  const emailInput = document.getElementById('admin-email-input');
+  const pwInput = document.getElementById('admin-pw-input');
   const error = document.getElementById('admin-login-error');
   overlay.classList.add('show');
   error.classList.remove('show');
-  input.value = '';
-  setTimeout(() => input.focus(), 100);
+  emailInput.value = '';
+  pwInput.value = '';
+  setTimeout(() => emailInput.focus(), 100);
 }
 
 function adminHideLogin() {
   document.getElementById('admin-login-overlay').classList.remove('show');
 }
 
+/* ---------- 비밀번호 변경 모달 ---------- */
+function adminShowChangePw() {
+  const overlay = document.getElementById('admin-pw-change-overlay');
+  overlay.classList.add('show');
+  document.getElementById('admin-new-pw').value = '';
+  document.getElementById('admin-new-pw-confirm').value = '';
+  document.getElementById('admin-pw-change-error').textContent = '';
+  document.getElementById('admin-pw-change-error').classList.remove('show');
+}
+
+function adminHideChangePw() {
+  document.getElementById('admin-pw-change-overlay').classList.remove('show');
+}
+
 /* ---------- 이벤트 바인딩 ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-  // 푸터 저작권 3회 클릭으로 관리자 접근
+  /* 푸터 저작권 3회 클릭으로 관리자 접근 */
   let _ac = 0, _at = null;
   document.getElementById('copyright').addEventListener('click', () => {
     _ac++;
@@ -77,11 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 로그인 폼 제출
+  /* 로그인 폼 제출 */
   document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const email = document.getElementById('admin-email-input').value.trim();
     const pw = document.getElementById('admin-pw-input').value;
-    if (await adminLogin(pw)) {
+    if (await adminLogin(email, pw)) {
       adminHideLogin();
       enterEditMode();
     } else {
@@ -91,70 +127,100 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 로그인 모달 닫기
+  /* 로그인 모달 닫기 */
   document.getElementById('admin-login-close').addEventListener('click', () => {
     adminHideLogin();
   });
-
   document.getElementById('admin-login-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'admin-login-overlay') adminHideLogin();
   });
 
-  // 편집 모달 오버레이 클릭으로 닫기
+  /* 비밀번호 변경 폼 제출 */
+  document.getElementById('admin-pw-change-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const newPw = document.getElementById('admin-new-pw').value;
+    const confirmPw = document.getElementById('admin-new-pw-confirm').value;
+    const errorEl = document.getElementById('admin-pw-change-error');
+
+    if (newPw.length < 6) {
+      errorEl.textContent = '비밀번호는 6자 이상이어야 합니다.';
+      errorEl.classList.add('show');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      errorEl.textContent = '비밀번호가 일치하지 않습니다.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    if (await adminChangePw(newPw)) {
+      adminHideChangePw();
+    }
+  });
+
+  /* 비밀번호 변경 모달 닫기 */
+  document.getElementById('admin-pw-change-close').addEventListener('click', () => {
+    adminHideChangePw();
+  });
+  document.getElementById('admin-pw-change-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'admin-pw-change-overlay') adminHideChangePw();
+  });
+
+  /* 편집 모달 오버레이 클릭으로 닫기 */
   document.getElementById('admin-modal-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'admin-modal-overlay') adminCloseModal();
   });
 });
 
-/* ---------- 삭제 ---------- */
-function adminHandleDelete(type, id) {
+/* ---------- 삭제 (비동기) ---------- */
+async function adminHandleDelete(type, id) {
   if (!confirm('정말 삭제하시겠습니까?')) return;
-  deleteItem(type, id);
+  await deleteItem(type, id);
   if (type === 'contacts') {
-    renderPhoneList();
+    await renderPhoneList();
     return;
   }
   if (location.hash.startsWith('#notice/')) {
     location.hash = '#notices';
   } else {
-    navigate();
+    await navigate();
   }
 }
 
-/* ---------- 편집 모달 ---------- */
-function adminOpenModal(type, editId = null) {
+/* ---------- 편집 모달 (비동기 - DB에서 데이터 조회) ---------- */
+async function adminOpenModal(type, editId = null) {
   adminCurrentType = type;
   adminCurrentEditId = editId;
 
-  /* 단일 객체 타입들 */
+  /* 단일 객체: 테스트 안내 */
   if (type === 'test_info') {
-    const info = getData('test_info');
+    const info = await getData('test_info');
     document.getElementById('admin-modal-title').textContent = '테스트 안내 수정';
     const formEl = document.getElementById('admin-modal-form');
     formEl.innerHTML = `
       <div class="form-group">
         <label>테스트 일정</label>
-        <input type="text" id="f-schedule" value="${info.schedule}" required>
+        <input type="text" id="f-schedule" value="${info.schedule || ''}" required>
       </div>
       <div class="form-group">
         <label>소요 시간</label>
-        <input type="text" id="f-duration" value="${info.duration}" required>
+        <input type="text" id="f-duration" value="${info.duration || ''}" required>
       </div>
       <div class="form-group">
         <label>테스트 영역</label>
-        <input type="text" id="f-areas" value="${info.areas}" required>
+        <input type="text" id="f-areas" value="${info.areas || ''}" required>
       </div>
       <div class="form-group">
         <label>준비물</label>
-        <input type="text" id="f-materials" value="${info.materials}" required>
+        <input type="text" id="f-materials" value="${info.materials || ''}" required>
       </div>
       <div class="form-group">
         <label>비용</label>
-        <input type="text" id="f-cost" value="${info.cost}" required>
+        <input type="text" id="f-cost" value="${info.cost || ''}" required>
       </div>
       <div class="form-group">
         <label>문의 전화</label>
-        <input type="text" id="f-phone" value="${info.phone}" required>
+        <input type="text" id="f-phone" value="${info.phone || ''}" required>
       </div>
       <div class="form-group">
         <label>구글폼 신청 링크 (선택)</label>
@@ -170,18 +236,19 @@ function adminOpenModal(type, editId = null) {
     return;
   }
 
+  /* 단일 객체: 약도 부가정보 */
   if (type === 'map_info') {
-    const info = getData('map_info');
+    const info = await getData('map_info');
     document.getElementById('admin-modal-title').textContent = '교통/운영 정보 수정';
     const formEl = document.getElementById('admin-modal-form');
     formEl.innerHTML = `
       <div class="form-group">
         <label>대중교통 안내 (줄바꿈으로 항목 구분)</label>
-        <textarea id="f-transport" style="min-height:100px" required>${info.transport}</textarea>
+        <textarea id="f-transport" style="min-height:100px" required>${info.transport || ''}</textarea>
       </div>
       <div class="form-group">
         <label>운영 시간</label>
-        <input type="text" id="f-hours" value="${info.hours}" required>
+        <input type="text" id="f-hours" value="${info.hours || ''}" required>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
@@ -193,8 +260,13 @@ function adminOpenModal(type, editId = null) {
     return;
   }
 
+  /* 배열 타입: 수정 시 해당 항목 조회 */
   const isEdit = editId !== null;
-  let item = isEdit ? getData(type).find(i => i.id === editId) : null;
+  let item = null;
+  if (isEdit) {
+    const items = await getData(type);
+    item = items.find(i => i.id === editId);
+  }
 
   const titles = {
     banners: isEdit ? '배너 수정' : '배너 추가',
@@ -394,108 +466,117 @@ function adminCloseModal() {
   adminCurrentEditId = null;
 }
 
-function adminHandleSubmit(e) {
+/* ---------- 폼 제출 처리 (비동기 - DB에 저장) ---------- */
+async function adminHandleSubmit(e) {
   e.preventDefault();
 
-  /* 단일 객체 저장 */
-  if (adminCurrentType === 'test_info') {
-    const info = {
-      schedule: document.getElementById('f-schedule').value.trim(),
-      duration: document.getElementById('f-duration').value.trim(),
-      areas: document.getElementById('f-areas').value.trim(),
-      materials: document.getElementById('f-materials').value.trim(),
-      cost: document.getElementById('f-cost').value.trim(),
-      phone: document.getElementById('f-phone').value.trim(),
-      formUrl: document.getElementById('f-formUrl').value.trim(),
+  /* 중복 제출 방지 */
+  const submitBtn = e.target.querySelector('.btn-save');
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    /* 단일 객체 저장 */
+    if (adminCurrentType === 'test_info') {
+      const info = {
+        schedule: document.getElementById('f-schedule').value.trim(),
+        duration: document.getElementById('f-duration').value.trim(),
+        areas: document.getElementById('f-areas').value.trim(),
+        materials: document.getElementById('f-materials').value.trim(),
+        cost: document.getElementById('f-cost').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        formUrl: document.getElementById('f-formUrl').value.trim(),
+      };
+      await saveData('test_info', info);
+      adminCloseModal();
+      await navigate();
+      return;
+    }
+
+    if (adminCurrentType === 'map_info') {
+      const info = {
+        transport: document.getElementById('f-transport').value.trim(),
+        hours: document.getElementById('f-hours').value.trim(),
+      };
+      await saveData('map_info', info);
+      adminCloseModal();
+      await navigate();
+      return;
+    }
+
+    /* 배열 항목 수집 */
+    const collectors = {
+      banners: () => ({
+        title: document.getElementById('f-title').value.trim(),
+        titleAfter: document.getElementById('f-titleAfter').value.trim(),
+        subtitle: document.getElementById('f-subtitle').value.trim(),
+        bgImage: document.getElementById('f-bgImage').value.trim(),
+        btnText: document.getElementById('f-btnText').value.trim(),
+        btnLink: document.getElementById('f-btnLink').value.trim(),
+      }),
+      instructors: () => ({
+        name: document.getElementById('f-name').value.trim(),
+        position: document.getElementById('f-position').value.trim(),
+        desc: document.getElementById('f-desc').value.trim(),
+        img: document.getElementById('f-img').value.trim(),
+        link: document.getElementById('f-link').value.trim(),
+        linkLabel: document.getElementById('f-linkLabel').value.trim(),
+      }),
+      curriculum: () => ({
+        title: document.getElementById('f-title').value.trim(),
+        tag: document.getElementById('f-tag').value.trim(),
+        desc: document.getElementById('f-desc').value.trim(),
+        target: document.getElementById('f-target').value.trim(),
+        schedule: document.getElementById('f-schedule').value.trim(),
+      }),
+      notices: () => ({
+        title: document.getElementById('f-title').value.trim(),
+        date: document.getElementById('f-date').value,
+        content: document.getElementById('f-content').value.trim(),
+        important: document.getElementById('f-important').checked,
+      }),
+      test_steps: () => ({
+        title: document.getElementById('f-title').value.trim(),
+        desc: document.getElementById('f-desc').value.trim(),
+      }),
+      contacts: () => ({
+        name: document.getElementById('f-name').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        link: document.getElementById('f-link').value.trim(),
+        linkLabel: document.getElementById('f-linkLabel').value.trim(),
+      }),
+      map_branches: () => ({
+        name: document.getElementById('f-name').value.trim(),
+        label: document.getElementById('f-label').value.trim(),
+        addr: document.getElementById('f-addr').value.trim(),
+        note: document.getElementById('f-note').value.trim(),
+        mapQuery: document.getElementById('f-mapQuery').value.trim(),
+      }),
+      terms: () => ({
+        title: document.getElementById('f-title').value.trim(),
+        content: document.getElementById('f-content').value.trim(),
+      }),
+      privacy: () => ({
+        title: document.getElementById('f-title').value.trim(),
+        content: document.getElementById('f-content').value.trim(),
+      }),
     };
-    saveData('test_info', info);
+
+    const data = collectors[adminCurrentType]();
+    const isContact = adminCurrentType === 'contacts';
+
+    if (adminCurrentEditId !== null) {
+      await updateItem(adminCurrentType, adminCurrentEditId, data);
+    } else {
+      await addItem(adminCurrentType, data);
+    }
+
     adminCloseModal();
-    navigate();
-    return;
-  }
-
-  if (adminCurrentType === 'map_info') {
-    const info = {
-      transport: document.getElementById('f-transport').value.trim(),
-      hours: document.getElementById('f-hours').value.trim(),
-    };
-    saveData('map_info', info);
-    adminCloseModal();
-    navigate();
-    return;
-  }
-
-  const collectors = {
-    banners: () => ({
-      title: document.getElementById('f-title').value.trim(),
-      titleAfter: document.getElementById('f-titleAfter').value.trim(),
-      subtitle: document.getElementById('f-subtitle').value.trim(),
-      bgImage: document.getElementById('f-bgImage').value.trim(),
-      btnText: document.getElementById('f-btnText').value.trim(),
-      btnLink: document.getElementById('f-btnLink').value.trim(),
-    }),
-    instructors: () => ({
-      name: document.getElementById('f-name').value.trim(),
-      position: document.getElementById('f-position').value.trim(),
-      desc: document.getElementById('f-desc').value.trim(),
-      img: document.getElementById('f-img').value.trim(),
-      link: document.getElementById('f-link').value.trim(),
-      linkLabel: document.getElementById('f-linkLabel').value.trim(),
-    }),
-    curriculum: () => ({
-      title: document.getElementById('f-title').value.trim(),
-      tag: document.getElementById('f-tag').value.trim(),
-      desc: document.getElementById('f-desc').value.trim(),
-      target: document.getElementById('f-target').value.trim(),
-      schedule: document.getElementById('f-schedule').value.trim(),
-    }),
-    notices: () => ({
-      title: document.getElementById('f-title').value.trim(),
-      date: document.getElementById('f-date').value,
-      content: document.getElementById('f-content').value.trim(),
-      important: document.getElementById('f-important').checked,
-    }),
-    test_steps: () => ({
-      title: document.getElementById('f-title').value.trim(),
-      desc: document.getElementById('f-desc').value.trim(),
-    }),
-    contacts: () => ({
-      name: document.getElementById('f-name').value.trim(),
-      phone: document.getElementById('f-phone').value.trim(),
-      link: document.getElementById('f-link').value.trim(),
-      linkLabel: document.getElementById('f-linkLabel').value.trim(),
-    }),
-    map_branches: () => ({
-      name: document.getElementById('f-name').value.trim(),
-      label: document.getElementById('f-label').value.trim(),
-      addr: document.getElementById('f-addr').value.trim(),
-      note: document.getElementById('f-note').value.trim(),
-      mapQuery: document.getElementById('f-mapQuery').value.trim(),
-    }),
-    terms: () => ({
-      title: document.getElementById('f-title').value.trim(),
-      content: document.getElementById('f-content').value.trim(),
-    }),
-    privacy: () => ({
-      title: document.getElementById('f-title').value.trim(),
-      content: document.getElementById('f-content').value.trim(),
-    }),
-  };
-
-  const data = collectors[adminCurrentType]();
-
-  const isContact = adminCurrentType === 'contacts';
-
-  if (adminCurrentEditId !== null) {
-    updateItem(adminCurrentType, adminCurrentEditId, data);
-  } else {
-    addItem(adminCurrentType, data);
-  }
-
-  adminCloseModal();
-  if (isContact) {
-    renderPhoneList();
-  } else {
-    navigate();
+    if (isContact) {
+      await renderPhoneList();
+    } else {
+      await navigate();
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
