@@ -480,7 +480,7 @@ async function renderNotices() {
         <input type="text" id="notice-search-input" placeholder="검색어를 입력하세요">
       </div>
       <button class="add-notice-btn" onclick="adminOpenModal('notices')">+ 공지사항 추가</button>
-      <div class="notice-list" id="notice-list-container"></div>
+      <div id="notice-list-container"></div>
     </section>
   `;
 
@@ -498,27 +498,64 @@ async function renderNotices() {
   });
 }
 
-async function filterNoticeList(keyword = '') {
+let noticeCurrentPage = 1;
+const NOTICES_PER_PAGE = 10;
+
+async function filterNoticeList(keyword = '', page = 1) {
   const all = await getData('notices');
   const q = keyword.trim().toLowerCase();
-  const notices = q
+  const filtered = q
     ? all.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q))
     : all;
 
   const container = document.getElementById('notice-list-container');
   if (!container) return;
 
-  container.innerHTML =
-    notices.length === 0
-      ? `<div style="padding:40px;text-align:center;color:#999;">${q ? '검색 결과가 없습니다.' : '등록된 공지사항이 없습니다.'}</div>`
-      : notices.map(n => `
-          <a href="#notice/${n.id}" class="notice-item">
-            ${n.important ? '<span class="notice-badge">중요</span>' : ''}
-            <span class="title">${n.title}</span>
-            <span class="date">${n.date}</span>
-            ${noticeEditBtns(n.id)}
-          </a>
-        `).join('');
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:40px;text-align:center;color:#999;">${q ? '검색 결과가 없습니다.' : '등록된 공지사항이 없습니다.'}</div>`;
+    return;
+  }
+
+  /* 중요 공지와 일반 공지 분리 */
+  const important = filtered.filter(n => n.important);
+  const normal = filtered.filter(n => !n.important);
+
+  /* 일반 공지 페이지네이션 */
+  const totalPages = Math.max(1, Math.ceil(normal.length / NOTICES_PER_PAGE));
+  noticeCurrentPage = Math.min(Math.max(1, page), totalPages);
+  const start = (noticeCurrentPage - 1) * NOTICES_PER_PAGE;
+  const pageNormals = normal.slice(start, start + NOTICES_PER_PAGE);
+
+  /* 1페이지에만 중요 공지 상단 표시 */
+  const visibleNotices = noticeCurrentPage === 1
+    ? [...important, ...pageNormals]
+    : pageNormals;
+
+  const noticeHtml = visibleNotices.map(n => `
+    <a href="#notice/${n.id}" class="notice-item">
+      ${n.important ? '<span class="notice-badge">중요</span>' : ''}
+      <span class="title">${n.title}</span>
+      <span class="date">${n.date}</span>
+      ${noticeEditBtns(n.id)}
+    </a>
+  `).join('');
+
+  /* 페이지네이션 버튼 */
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(`<button class="page-btn${i === noticeCurrentPage ? ' active' : ''}" onclick="goNoticePage(${i})">${i}</button>`);
+    }
+    paginationHtml = `<div class="pagination">${pages.join('')}</div>`;
+  }
+
+  container.innerHTML = `<div class="notice-list">${noticeHtml}</div>${paginationHtml}`;
+}
+
+function goNoticePage(page) {
+  const keyword = document.getElementById('notice-search-input')?.value || '';
+  filterNoticeList(keyword, page);
 }
 
 /* ---------- 공지사항 상세 ---------- */
@@ -567,10 +604,16 @@ async function renderMap() {
         <div class="map-branch-card">
           <div class="map-branch-header">
             <h3>${b.name} ${b.label ? '<span class="map-branch-label">' + b.label + '</span>' : ''}</h3>
-            <a href="https://map.kakao.com/link/search/${encodeURIComponent(b.mapQuery)}" target="_blank" rel="noopener" class="map-kakao-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              카카오맵에서 보기
-            </a>
+            <div class="map-btn-group">
+              <a href="https://map.kakao.com/link/search/${encodeURIComponent(b.mapQuery)}" target="_blank" rel="noopener" class="map-kakao-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                카카오맵에서 보기
+              </a>
+              <a href="https://map.naver.com/v5/search/${encodeURIComponent(b.mapQuery)}" target="_blank" rel="noopener" class="map-naver-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                네이버지도에서 보기
+              </a>
+            </div>
           </div>
           <p class="map-branch-addr">${b.addr}</p>
           ${b.note ? '<p class="map-branch-note">' + b.note + '</p>' : ''}

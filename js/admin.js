@@ -96,22 +96,6 @@ function adminHideChangePw() {
 
 /* ---------- 이벤트 바인딩 ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-  /* 푸터 저작권 3회 클릭으로 관리자 접근 */
-  let _ac = 0, _at = null;
-  document.getElementById('copyright').addEventListener('click', () => {
-    _ac++;
-    clearTimeout(_at);
-    _at = setTimeout(() => { _ac = 0; }, 2000);
-    if (_ac >= 3) {
-      _ac = 0;
-      if (adminIsAuthed()) {
-        enterEditMode();
-      } else {
-        adminShowLogin();
-      }
-    }
-  });
-
   /* 로그인 폼 제출 */
   document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -120,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (await adminLogin(email, pw)) {
       adminHideLogin();
       enterEditMode();
+      location.hash = '#home';
     } else {
       document.getElementById('admin-login-error').classList.add('show');
       document.getElementById('admin-pw-input').value = '';
@@ -130,9 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
   /* 로그인 모달 닫기 */
   document.getElementById('admin-login-close').addEventListener('click', () => {
     adminHideLogin();
+    if (location.hash === '#admin') location.hash = '#home';
   });
   document.getElementById('admin-login-overlay').addEventListener('click', (e) => {
-    if (e.target.id === 'admin-login-overlay') adminHideLogin();
+    if (e.target.id === 'admin-login-overlay') {
+      adminHideLogin();
+      if (location.hash === '#admin') location.hash = '#home';
+    }
   });
 
   /* 비밀번호 변경 폼 제출 */
