@@ -3,6 +3,7 @@
 
 let adminCurrentType = '';
 let adminCurrentEditId = null;
+let adminBannerPage = 'home'; /* 배너가 속한 페이지 */
 
 /* ---------- 인증 상태 관리 ---------- */
 /* Supabase Auth 세션을 추적하는 플래그 (동기적으로 확인 가능) */
@@ -177,9 +178,10 @@ async function adminHandleDelete(type, id) {
 }
 
 /* ---------- 편집 모달 (비동기 - DB에서 데이터 조회) ---------- */
-async function adminOpenModal(type, editId = null) {
+async function adminOpenModal(type, editId = null, bannerPage = null) {
   adminCurrentType = type;
   adminCurrentEditId = editId;
+  if (type === 'banners' && bannerPage) adminBannerPage = bannerPage;
 
   /* 단일 객체: 테스트 안내 */
   if (type === 'test_info') {
@@ -255,6 +257,8 @@ async function adminOpenModal(type, editId = null) {
   if (isEdit) {
     const items = await getData(type);
     item = items.find(i => i.id === editId);
+    /* 배너 수정 시 기존 page 값 복원 */
+    if (type === 'banners' && item && item.page) adminBannerPage = item.page;
   }
 
   const titles = {
@@ -270,8 +274,15 @@ async function adminOpenModal(type, editId = null) {
   };
   document.getElementById('admin-modal-title').textContent = titles[type];
 
+  const pageLabels = { home: '메인', instructors: '강사소개', curriculum: '교육과정', test: '입학테스트', notices: '공지사항' };
+  const bannerPageVal = item ? (item.page || adminBannerPage) : adminBannerPage;
+
   const forms = {
     banners: `
+      <div class="form-group">
+        <label>대상 페이지</label>
+        <input type="text" id="f-page" value="${pageLabels[bannerPageVal] || bannerPageVal}" readonly style="background:#f5f6f8;cursor:default;">
+      </div>
       <div class="form-group">
         <label>강조 문구 (색상 적용)</label>
         <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 국어의 힘" required>
@@ -509,6 +520,7 @@ async function adminHandleSubmit(e) {
         bgImage: document.getElementById('f-bgImage').value.trim(),
         btnText: document.getElementById('f-btnText').value.trim(),
         btnLink: document.getElementById('f-btnLink').value.trim(),
+        page: adminBannerPage,
       }),
       instructors: () => ({
         name: document.getElementById('f-name').value.trim(),

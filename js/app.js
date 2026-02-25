@@ -17,14 +17,21 @@ function stopBannerSlider() {
   }
 }
 
-function startBannerSlider() {
+function restartBannerTimer() {
   stopBannerSlider();
   if (bannerCount <= 1) return;
-  currentBannerIdx = 0;
   bannerInterval = setInterval(() => {
     currentBannerIdx = (currentBannerIdx + 1) % bannerCount;
     updateBannerPosition();
   }, 5000);
+}
+
+function startBannerSlider() {
+  stopBannerSlider();
+  if (bannerCount <= 1) return;
+  currentBannerIdx = 0;
+  restartBannerTimer();
+  initBannerTouch();
 }
 
 function updateBannerPosition() {
@@ -38,13 +45,73 @@ function updateBannerPosition() {
 function goToBanner(idx) {
   currentBannerIdx = idx;
   updateBannerPosition();
-  if (bannerCount > 1) {
+  restartBannerTimer();
+}
+
+/* ---------- 배너 터치 슬라이드 ---------- */
+function initBannerTouch() {
+  const slider = document.querySelector('.banner-slider');
+  if (!slider || bannerCount <= 1) return;
+
+  let startX = 0;
+  let startY = 0;
+  let deltaX = 0;
+  let isDragging = false;
+  let isHorizontal = null;
+  const track = slider.querySelector('.banner-track');
+
+  slider.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    deltaX = 0;
+    isDragging = true;
+    isHorizontal = null;
+    track.classList.add('dragging');
     stopBannerSlider();
-    bannerInterval = setInterval(() => {
-      currentBannerIdx = (currentBannerIdx + 1) % bannerCount;
-      updateBannerPosition();
-    }, 5000);
-  }
+  }, { passive: true });
+
+  slider.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    deltaX = currentX - startX;
+    const deltaY = currentY - startY;
+
+    // 첫 움직임에서 방향 판별 (수평 vs 수직)
+    if (isHorizontal === null && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+      isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+    }
+
+    if (!isHorizontal) return;
+
+    // 끝에서 더 넘어가지 않도록 저항감 추가
+    let clampedDelta = deltaX;
+    if ((currentBannerIdx === 0 && deltaX > 0) || (currentBannerIdx === bannerCount - 1 && deltaX < 0)) {
+      clampedDelta = deltaX * 0.3;
+    }
+
+    const offset = -(currentBannerIdx * 100) + (clampedDelta / slider.offsetWidth) * 100;
+    track.style.transform = `translateX(${offset}%)`;
+  }, { passive: true });
+
+  slider.addEventListener('touchend', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    track.classList.remove('dragging');
+
+    const threshold = slider.offsetWidth * 0.2; // 20% 넘기면 전환
+
+    if (isHorizontal && Math.abs(deltaX) > threshold) {
+      if (deltaX < 0 && currentBannerIdx < bannerCount - 1) {
+        currentBannerIdx++;
+      } else if (deltaX > 0 && currentBannerIdx > 0) {
+        currentBannerIdx--;
+      }
+    }
+
+    updateBannerPosition();
+    restartBannerTimer();
+  }, { passive: true });
 }
 
 /* ---------- 편집 컨트롤 헬퍼 ---------- */
@@ -69,6 +136,58 @@ function noticeEditBtns(id) {
     <button class="btn-edit" onclick="adminOpenModal('notices',${id})">수정</button>
     <button class="btn-delete" onclick="adminHandleDelete('notices',${id})">삭제</button>
   </span>`;
+}
+
+/* ---------- 공통 배너 슬라이더 빌더 ---------- */
+function buildBannerSliderHtml(banners, pageName) {
+  const slides = banners.map(b => {
+    const bgStyle = b.bgImage
+      ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${b.bgImage}') center/cover no-repeat;`
+      : '';
+    return `
+      <div class="banner-slide hero" ${bgStyle ? 'style="' + bgStyle + '"' : ''}>
+        <div class="banner-edit-wrap">
+          <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',${b.id},'${pageName}')">수정</button>
+          <button class="btn-delete hero-edit-btn" onclick="adminHandleDelete('banners',${b.id})">삭제</button>
+        </div>
+        <h1><span class="accent">${b.title}</span>${b.titleAfter}</h1>
+        <p>${b.subtitle}</p>
+        ${b.btnText && b.btnLink ? `<a href="${b.btnLink}" class="hero-btn">${b.btnText}</a>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const dots = banners.length > 1
+    ? `<div class="banner-dots">${banners.map((_, i) => `<span class="banner-dot${i === 0 ? ' active' : ''}" onclick="goToBanner(${i})"></span>`).join('')}</div>`
+    : '';
+
+  return `
+    <section class="banner-slider">
+      <div class="banner-track">${slides}</div>
+      ${dots}
+      <div class="banner-add-wrap">
+        <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',null,'${pageName}')">+ 배너 추가</button>
+      </div>
+    </section>
+  `;
+}
+
+function buildPageHeaderOrBanner(banners, pageName, title, subtitle) {
+  if (banners.length > 0) {
+    bannerCount = banners.length;
+    return buildBannerSliderHtml(banners, pageName);
+  }
+  /* 배너 없으면 기존 page-header + 편집모드 추가 버튼 */
+  bannerCount = 0;
+  return `
+    <div class="page-header">
+      <h2>${title}</h2>
+      ${subtitle ? `<p>${subtitle}</p>` : ''}
+      <div class="banner-add-wrap" style="margin-top:12px;">
+        <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',null,'${pageName}')">+ 배너 추가</button>
+      </div>
+    </div>
+  `;
 }
 
 /* ---------- 링크 헬퍼 (강사, 교육과정 공용) ---------- */
@@ -233,42 +352,15 @@ async function renderHome() {
     getData('instructors'),
     getData('curriculum'),
     getData('notices'),
-    getData('banners'),
+    getDataFiltered('banners', 'page', 'home'),
     getData('test_steps'),
   ]);
 
   bannerCount = banners.length;
 
-  const bannerSlides = banners.map(b => {
-    const bgStyle = b.bgImage
-      ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${b.bgImage}') center/cover no-repeat;`
-      : '';
-    return `
-      <div class="banner-slide hero" ${bgStyle ? 'style="' + bgStyle + '"' : ''}>
-        <div class="banner-edit-wrap">
-          <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',${b.id})">수정</button>
-          <button class="btn-delete hero-edit-btn" onclick="adminHandleDelete('banners',${b.id})">삭제</button>
-        </div>
-        <h1><span class="accent">${b.title}</span>${b.titleAfter}</h1>
-        <p>${b.subtitle}</p>
-        ${b.btnText && b.btnLink ? `<a href="${b.btnLink}" class="hero-btn">${b.btnText}</a>` : ''}
-      </div>
-    `;
-  }).join('');
-
-  const bannerDots = banners.length > 1
-    ? `<div class="banner-dots">${banners.map((_, i) => `<span class="banner-dot${i === 0 ? ' active' : ''}" onclick="goToBanner(${i})"></span>`).join('')}</div>`
-    : '';
-
   mainEl.innerHTML = `
     <!-- 배너 슬라이더 -->
-    <section class="banner-slider">
-      <div class="banner-track">${bannerSlides}</div>
-      ${bannerDots}
-      <div class="banner-add-wrap">
-        <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners')">+ 배너 추가</button>
-      </div>
-    </section>
+    ${buildBannerSliderHtml(banners, 'home')}
 
     <!-- 강사진 미리보기 -->
     <section class="section">
@@ -359,12 +451,12 @@ async function renderHome() {
 
 /* ---------- 강사소개 페이지 ---------- */
 async function renderInstructors() {
-  const instructors = await getData('instructors');
+  const [instructors, banners] = await Promise.all([
+    getData('instructors'),
+    getDataFiltered('banners', 'page', 'instructors'),
+  ]);
   mainEl.innerHTML = `
-    <div class="page-header">
-      <h2>강사진 소개</h2>
-      <p>안보라의 전문 강사진을 소개합니다</p>
-    </div>
+    ${buildPageHeaderOrBanner(banners, 'instructors', '강사진 소개', '안보라의 전문 강사진을 소개합니다')}
     <section class="section">
       <div class="card-grid">
         ${instructors.map(i => `
@@ -383,16 +475,17 @@ async function renderInstructors() {
       </div>
     </section>
   `;
+  if (banners.length > 0) startBannerSlider();
 }
 
 /* ---------- 교육과정 페이지 ---------- */
 async function renderCurriculum() {
-  const curriculum = await getData('curriculum');
+  const [curriculum, banners] = await Promise.all([
+    getData('curriculum'),
+    getDataFiltered('banners', 'page', 'curriculum'),
+  ]);
   mainEl.innerHTML = `
-    <div class="page-header">
-      <h2>교육과정</h2>
-      <p>체계적인 단계별 교육과정으로 국어 실력을 완성합니다</p>
-    </div>
+    ${buildPageHeaderOrBanner(banners, 'curriculum', '교육과정', '체계적인 단계별 교육과정으로 국어 실력을 완성합니다')}
     <section class="section">
       <div class="card-grid">
         ${curriculum.map(c => `
@@ -411,20 +504,19 @@ async function renderCurriculum() {
       </div>
     </section>
   `;
+  if (banners.length > 0) startBannerSlider();
 }
 
 /* ---------- 입학 테스트 페이지 ---------- */
 async function renderTest() {
-  const [steps, info] = await Promise.all([
+  const [steps, info, banners] = await Promise.all([
     getData('test_steps'),
     getData('test_info'),
+    getDataFiltered('banners', 'page', 'test'),
   ]);
 
   mainEl.innerHTML = `
-    <div class="page-header">
-      <h2>입학 테스트</h2>
-      <p>정확한 실력 진단으로 최적의 학습 과정을 안내합니다</p>
-    </div>
+    ${buildPageHeaderOrBanner(banners, 'test', '입학 테스트', '정확한 실력 진단으로 최적의 학습 과정을 안내합니다')}
     <section class="section">
       <div class="test-info">
         <h3>테스트 진행 절차</h3>
@@ -463,15 +555,14 @@ async function renderTest() {
       </div>
     </section>
   `;
+  if (banners.length > 0) startBannerSlider();
 }
 
 /* ---------- 공지사항 목록 ---------- */
 async function renderNotices() {
+  const banners = await getDataFiltered('banners', 'page', 'notices');
   mainEl.innerHTML = `
-    <div class="page-header">
-      <h2>공지사항</h2>
-      <p>안보라의 소식을 전합니다</p>
-    </div>
+    ${buildPageHeaderOrBanner(banners, 'notices', '공지사항', '안보라의 소식을 전합니다')}
     <section class="section">
       <div class="notice-search">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -496,6 +587,7 @@ async function renderNotices() {
   searchInput.addEventListener('input', () => {
     if (!composing) filterNoticeList(searchInput.value);
   });
+  if (banners.length > 0) startBannerSlider();
 }
 
 let noticeCurrentPage = 1;

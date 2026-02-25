@@ -61,7 +61,37 @@ const dataCache = {};
 const CACHE_TTL = 30000; /* 30초 동안 캐시 유지 */
 
 function invalidateCache(key) {
+  /* 기본 캐시 삭제 */
   delete dataCache[key];
+  /* 파생 캐시(예: banners__page__home)도 함께 삭제 */
+  const prefix = key + '__';
+  for (const k of Object.keys(dataCache)) {
+    if (k.startsWith(prefix)) delete dataCache[k];
+  }
+}
+
+/* ---------- 필터링 조회 ---------- */
+async function getDataFiltered(key, filterCol, filterVal) {
+  const cacheKey = `${key}__${filterCol}__${filterVal}`;
+  const now = Date.now();
+  if (dataCache[cacheKey] && (now - dataCache[cacheKey].time < CACHE_TTL)) {
+    return dataCache[cacheKey].data;
+  }
+
+  const table = TABLE_NAMES[key];
+  const dbCol = filterCol === 'desc' ? 'description' : toSnakeCase(filterCol);
+  let query = supabaseClient.from(table).select('*').eq(dbCol, filterVal);
+  query = query.order('id', { ascending: true });
+
+  const { data, error } = await query;
+  if (error) {
+    console.error(`getDataFiltered(${key}, ${filterCol}) 오류:`, error);
+    return [];
+  }
+
+  const result = data.map(rowToJs);
+  dataCache[cacheKey] = { data: result, time: now };
+  return result;
 }
 
 /* ---------- 데이터 조회 (SELECT) ---------- */
