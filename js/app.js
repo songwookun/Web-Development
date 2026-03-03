@@ -494,7 +494,7 @@ async function renderCurriculum() {
               <span class="card-tag">${c.tag}</span>
               <h3>${c.title}</h3>
               <p>${c.desc}</p>
-              <p style="margin-top:12px;font-size:0.85rem;"><strong>대상:</strong> ${c.target}<br><strong>시간:</strong> ${c.schedule}</p>
+              <p style="margin-top:12px;font-size:0.85rem;"><strong>대상:</strong> ${c.target}</p>
               ${curriculumLinkHtml(c)}
               ${editBtns('curriculum', c.id)}
             </div>

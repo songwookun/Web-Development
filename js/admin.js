@@ -156,10 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'admin-pw-change-overlay') adminHideChangePw();
   });
 
-  /* 편집 모달 오버레이 클릭으로 닫기 */
-  document.getElementById('admin-modal-overlay').addEventListener('click', (e) => {
-    if (e.target.id === 'admin-modal-overlay') adminCloseModal();
-  });
+  /* 편집 모달: 오버레이 클릭으로 닫히지 않음 (취소/수정하기 버튼으로만 닫기) */
 });
 
 /* ---------- 삭제 (비동기) ---------- */
