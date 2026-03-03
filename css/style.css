@@ -632,6 +632,16 @@ body.edit-mode .banner-edit-wrap { display: flex; }
   white-space: pre-wrap;
 }
 
+.notice-detail .content a {
+  color: #2563eb;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.notice-detail .content a:hover {
+  color: #1d4ed8;
+}
+
 .back-btn {
   display: inline-block;
   margin-top: 32px;

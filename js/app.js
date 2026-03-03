@@ -650,6 +650,11 @@ function goNoticePage(page) {
   filterNoticeList(keyword, page);
 }
 
+/* ---------- URL 자동 링크 변환 ---------- */
+function linkify(text) {
+  return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
 /* ---------- 공지사항 상세 ---------- */
 async function renderNoticeDetail(id) {
   const notices = await getData('notices');
@@ -669,7 +674,7 @@ async function renderNoticeDetail(id) {
       </div>
       <h2>${notice.title}</h2>
       <p class="meta">${notice.date}</p>
-      <div class="content">${notice.content}</div>
+      <div class="content">${linkify(notice.content)}</div>
       <a href="#notices" class="back-btn">목록으로</a>
     </div>
   `;
