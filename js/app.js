@@ -114,6 +114,11 @@ function initBannerTouch() {
   }, { passive: true });
 }
 
+/* ---------- 드래그 핸들 헬퍼 ---------- */
+function dragHandle(id) {
+  return `<span class="drag-handle" data-drag-handle title="드래그하여 순서 변경">⠿</span>`;
+}
+
 /* ---------- 편집 컨트롤 헬퍼 ---------- */
 function editBtns(type, id) {
   return `<div class="card-edit-actions">
@@ -161,6 +166,18 @@ function buildBannerSliderHtml(banners, pageName) {
     ? `<div class="banner-dots">${banners.map((_, i) => `<span class="banner-dot${i === 0 ? ' active' : ''}" onclick="goToBanner(${i})"></span>`).join('')}</div>`
     : '';
 
+  const sortList = banners.length > 1
+    ? `<div class="banner-sort-list" data-sortable="banners">
+        ${banners.map((b, i) => `
+          <div class="banner-sort-item" data-id="${b.id}">
+            <span class="drag-handle" data-drag-handle title="드래그하여 순서 변경">⠿</span>
+            <span class="banner-sort-num">${i + 1}</span>
+            <span class="banner-sort-title">${b.title}${b.titleAfter}</span>
+          </div>
+        `).join('')}
+      </div>`
+    : '';
+
   return `
     <section class="banner-slider">
       <div class="banner-track">${slides}</div>
@@ -168,6 +185,7 @@ function buildBannerSliderHtml(banners, pageName) {
       <div class="banner-add-wrap">
         <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',null,'${pageName}')">+ 배너 추가</button>
       </div>
+      ${sortList}
     </section>
   `;
 }
@@ -447,6 +465,7 @@ async function renderHome() {
   `;
 
   startBannerSlider();
+  initSortable();
 }
 
 /* ---------- 강사소개 페이지 ---------- */
@@ -458,9 +477,10 @@ async function renderInstructors() {
   mainEl.innerHTML = `
     ${buildPageHeaderOrBanner(banners, 'instructors', '강사진 소개', '안보라의 전문 강사진을 소개합니다')}
     <section class="section">
-      <div class="card-grid">
+      <div class="card-grid" data-sortable="instructors">
         ${instructors.map(i => `
-          <div class="card instructor-card">
+          <div class="card instructor-card" data-id="${i.id}">
+            ${dragHandle(i.id)}
             <img class="card-img" src="${i.img || placeholderImg(i.name, 400, 300)}" alt="${i.name}">
             <div class="card-body">
               <h3>${i.name}</h3>
@@ -476,6 +496,7 @@ async function renderInstructors() {
     </section>
   `;
   if (banners.length > 0) startBannerSlider();
+  initSortable();
 }
 
 /* ---------- 교육과정 페이지 ---------- */
@@ -487,9 +508,10 @@ async function renderCurriculum() {
   mainEl.innerHTML = `
     ${buildPageHeaderOrBanner(banners, 'curriculum', '교육과정', '체계적인 단계별 교육과정으로 국어 실력을 완성합니다')}
     <section class="section">
-      <div class="card-grid">
+      <div class="card-grid" data-sortable="curriculum">
         ${curriculum.map(c => `
-          <div class="card">
+          <div class="card" data-id="${c.id}">
+            ${dragHandle(c.id)}
             <div class="card-body">
               <span class="card-tag">${c.tag}</span>
               <h3>${c.title}</h3>
@@ -505,6 +527,7 @@ async function renderCurriculum() {
     </section>
   `;
   if (banners.length > 0) startBannerSlider();
+  initSortable();
 }
 
 /* ---------- 입학 테스트 페이지 ---------- */
@@ -520,9 +543,10 @@ async function renderTest() {
     <section class="section">
       <div class="test-info">
         <h3>테스트 진행 절차</h3>
-        <div class="test-steps">
+        <div class="test-steps" data-sortable="test_steps">
           ${steps.map((s, idx) => `
-            <div class="test-step">
+            <div class="test-step" data-id="${s.id}">
+              ${dragHandle(s.id)}
               <div class="step-num">${idx + 1}</div>
               <h4>${s.title}</h4>
               <p>${s.desc}</p>
@@ -556,6 +580,7 @@ async function renderTest() {
     </section>
   `;
   if (banners.length > 0) startBannerSlider();
+  initSortable();
 }
 
 /* ---------- 공지사항 목록 ---------- */
@@ -588,6 +613,7 @@ async function renderNotices() {
     if (!composing) filterNoticeList(searchInput.value);
   });
   if (banners.length > 0) startBannerSlider();
+  initSortable();
 }
 
 let noticeCurrentPage = 1;

@@ -159,6 +159,226 @@ document.addEventListener('DOMContentLoaded', () => {
   /* 편집 모달: 오버레이 클릭으로 닫히지 않음 (취소/수정하기 버튼으로만 닫기) */
 });
 
+/* ---------- 드래그 앤 드롭 정렬 ---------- */
+function initSortable() {
+  if (!document.body.classList.contains('edit-mode')) return;
+
+  document.querySelectorAll('[data-sortable]').forEach(container => {
+    if (container._sortableInit) return;
+    container._sortableInit = true;
+
+    const type = container.dataset.sortable;
+
+    /* --- 데스크톱 드래그 (마우스 직접 제어) --- */
+    let dragEl = null;
+    let dragClone = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    container.addEventListener('mousedown', (e) => {
+      const handle = e.target.closest('[data-drag-handle]');
+      if (!handle) return;
+      const item = handle.closest('[data-id]');
+      if (!item) return;
+      e.preventDefault();
+
+      dragEl = item;
+      dragEl.classList.add('drag-dragging');
+
+      const rect = item.getBoundingClientRect();
+      dragOffsetX = e.clientX - rect.left;
+      dragOffsetY = e.clientY - rect.top;
+
+      dragClone = item.cloneNode(true);
+      dragClone.classList.add('drag-clone');
+      dragClone.style.width = rect.width + 'px';
+      dragClone.style.left = (e.clientX - dragOffsetX) + 'px';
+      dragClone.style.top = (e.clientY - dragOffsetY) + 'px';
+      document.body.appendChild(dragClone);
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    function onMouseMove(e) {
+      if (!dragEl) return;
+      e.preventDefault();
+
+      if (dragClone) {
+        dragClone.style.left = (e.clientX - dragOffsetX) + 'px';
+        dragClone.style.top = (e.clientY - dragOffsetY) + 'px';
+      }
+
+      const target = getDragTarget(container, e.clientY, e.clientX);
+      clearDragOver(container);
+      if (target && target !== dragEl) {
+        target.classList.add('drag-over');
+      }
+    }
+
+    function onMouseUp(e) {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (!dragEl) return;
+
+      const target = getDragTarget(container, e.clientY, e.clientX);
+      if (target && target !== dragEl) {
+        const rect = target.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          container.insertBefore(dragEl, target);
+        } else {
+          container.insertBefore(dragEl, target.nextSibling);
+        }
+        finishDrag(container, type);
+      }
+
+      dragEl.classList.remove('drag-dragging');
+      if (dragClone) { dragClone.remove(); dragClone = null; }
+      dragEl = null;
+      clearDragOver(container);
+    }
+
+    /* --- 모바일 터치 드래그 --- */
+    let touchDragEl = null;
+    let touchClone = null;
+    let touchTimer = null;
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let isDragActive = false;
+
+    container.addEventListener('touchstart', (e) => {
+      const handle = e.target.closest('[data-drag-handle]');
+      if (!handle) return;
+      const item = handle.closest('[data-id]');
+      if (!item) return;
+
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+
+      touchTimer = setTimeout(() => {
+        isDragActive = true;
+        touchDragEl = item;
+        touchDragEl.classList.add('drag-dragging');
+
+        /* 복제본 생성 */
+        touchClone = item.cloneNode(true);
+        touchClone.classList.add('drag-clone');
+        touchClone.style.width = item.offsetWidth + 'px';
+        touchClone.style.left = (touchStartX - item.offsetWidth / 2) + 'px';
+        touchClone.style.top = (touchStartY - 30) + 'px';
+        document.body.appendChild(touchClone);
+      }, 150);
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+      if (!isDragActive || !touchDragEl) {
+        /* 아직 드래그 시작 전이면 타이머 취소 */
+        if (touchTimer && !isDragActive) {
+          const dx = Math.abs(e.touches[0].clientX - touchStartX);
+          const dy = Math.abs(e.touches[0].clientY - touchStartY);
+          if (dx > 10 || dy > 10) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+          }
+        }
+        return;
+      }
+      e.preventDefault();
+
+      const touch = e.touches[0];
+      if (touchClone) {
+        touchClone.style.left = (touch.clientX - touchClone.offsetWidth / 2) + 'px';
+        touchClone.style.top = (touch.clientY - 30) + 'px';
+      }
+
+      const target = getDragTarget(container, touch.clientY, touch.clientX);
+      clearDragOver(container);
+      if (target && target !== touchDragEl) {
+        target.classList.add('drag-over');
+      }
+    }, { passive: false });
+
+    container.addEventListener('touchend', (e) => {
+      clearTimeout(touchTimer);
+      touchTimer = null;
+
+      if (!isDragActive || !touchDragEl) {
+        isDragActive = false;
+        return;
+      }
+
+      const touch = e.changedTouches[0];
+      const target = getDragTarget(container, touch.clientY, touch.clientX);
+      if (target && target !== touchDragEl) {
+        const rect = target.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (touch.clientY < midY) {
+          container.insertBefore(touchDragEl, target);
+        } else {
+          container.insertBefore(touchDragEl, target.nextSibling);
+        }
+      }
+
+      touchDragEl.classList.remove('drag-dragging');
+      if (touchClone) {
+        touchClone.remove();
+        touchClone = null;
+      }
+      clearDragOver(container);
+      finishDrag(container, type);
+
+      touchDragEl = null;
+      isDragActive = false;
+    }, { passive: true });
+  });
+}
+
+/* 드래그 대상 요소 탐색 (포인터 위치 기반) */
+function getDragTarget(container, clientY, clientX) {
+  const items = [...container.querySelectorAll('[data-id]')];
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    if (clientY >= rect.top && clientY <= rect.bottom &&
+        clientX >= rect.left && clientX <= rect.right) {
+      return item;
+    }
+  }
+  /* 가장 가까운 요소 반환 */
+  let closest = null;
+  let minDist = Infinity;
+  for (const item of items) {
+    const rect = item.getBoundingClientRect();
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.abs(clientY - cy);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = item;
+    }
+  }
+  return closest;
+}
+
+function clearDragOver(container) {
+  container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+async function finishDrag(container, type) {
+  const items = [...container.querySelectorAll('[data-id]')];
+  const sorted = items.map((el, idx) => ({
+    id: Number(el.dataset.id),
+    sortOrder: (idx + 1) * 10,
+  }));
+
+  /* 번호 텍스트 갱신 (test_steps의 step-num, banner-sort의 num) */
+  items.forEach((el, idx) => {
+    const numEl = el.querySelector('.step-num') || el.querySelector('.banner-sort-num');
+    if (numEl) numEl.textContent = idx + 1;
+  });
+
+  await updateSortOrder(type, sorted);
+}
+
 /* ---------- 삭제 (비동기) ---------- */
 async function adminHandleDelete(type, id) {
   if (!confirm('정말 삭제하시겠습니까?')) return;

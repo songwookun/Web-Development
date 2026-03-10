@@ -20,6 +20,9 @@ const TABLE_NAMES = {
 /* 단일 행 테이블 (배열이 아닌 객체 하나로 반환) */
 const SINGLETON_TYPES = ['test_info', 'map_info'];
 
+/* sort_order 기반 정렬을 지원하는 테이블 */
+const SORTABLE_TYPES = ['instructors', 'curriculum', 'banners', 'test_steps'];
+
 /* ---------- 컬럼명 변환 (JS camelCase ↔ DB snake_case) ---------- */
 
 /* camelCase → snake_case */
@@ -81,7 +84,11 @@ async function getDataFiltered(key, filterCol, filterVal) {
   const table = TABLE_NAMES[key];
   const dbCol = filterCol === 'desc' ? 'description' : toSnakeCase(filterCol);
   let query = supabaseClient.from(table).select('*').eq(dbCol, filterVal);
-  query = query.order('id', { ascending: true });
+  if (SORTABLE_TYPES.includes(key)) {
+    query = query.order('sort_order', { ascending: true, nullsFirst: false }).order('id', { ascending: true });
+  } else {
+    query = query.order('id', { ascending: true });
+  }
 
   const { data, error } = await query;
   if (error) {
@@ -105,9 +112,11 @@ async function getData(key) {
   const table = TABLE_NAMES[key];
   let query = supabaseClient.from(table).select('*');
 
-  /* 정렬: 공지사항은 날짜 내림차순, 나머지는 id 오름차순 */
+  /* 정렬: 공지사항은 날짜 내림차순, sortable은 sort_order 우선, 나머지는 id 오름차순 */
   if (key === 'notices') {
     query = query.order('date', { ascending: false }).order('id', { ascending: false });
+  } else if (SORTABLE_TYPES.includes(key)) {
+    query = query.order('sort_order', { ascending: true, nullsFirst: false }).order('id', { ascending: true });
   } else {
     query = query.order('id', { ascending: true });
   }
@@ -147,9 +156,27 @@ async function saveData(key, jsObj) {
   invalidateCache(key);
 }
 
+/* ---------- sort_order 벌크 업데이트 ---------- */
+async function updateSortOrder(key, items) {
+  const table = TABLE_NAMES[key];
+  await Promise.all(items.map(({ id, sortOrder }) =>
+    supabaseClient.from(table).update({ sort_order: sortOrder }).eq('id', id)
+  ));
+  invalidateCache(key);
+}
+
 /* ---------- 항목 추가 (INSERT) ---------- */
 async function addItem(key, jsObj) {
   const table = TABLE_NAMES[key];
+
+  /* SORTABLE_TYPES이면 자동으로 맨 뒤 sort_order 부여 */
+  if (SORTABLE_TYPES.includes(key) && jsObj.sortOrder == null) {
+    const { data: maxRow } = await supabaseClient
+      .from(table).select('sort_order').order('sort_order', { ascending: false }).limit(1);
+    const maxVal = (maxRow && maxRow.length > 0 && maxRow[0].sort_order) || 0;
+    jsObj.sortOrder = maxVal + 10;
+  }
+
   const row = jsToRow(jsObj);
 
   const { data, error } = await supabaseClient.from(table).insert(row).select();
