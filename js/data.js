@@ -10,6 +10,7 @@ const TABLE_NAMES = {
   notices: 'notices',
   test_steps: 'test_steps',
   test_info: 'test_info',
+  test_booking_config: 'test_booking_config',
   contacts: 'contacts',
   map_branches: 'map_branches',
   map_info: 'map_info',
@@ -18,7 +19,7 @@ const TABLE_NAMES = {
 };
 
 /* 단일 행 테이블 (배열이 아닌 객체 하나로 반환) */
-const SINGLETON_TYPES = ['test_info', 'map_info'];
+const SINGLETON_TYPES = ['test_info', 'map_info', 'test_booking_config'];
 
 /* sort_order 기반 정렬을 지원하는 테이블 */
 const SORTABLE_TYPES = ['instructors', 'curriculum', 'banners', 'test_steps'];

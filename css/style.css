@@ -1634,6 +1634,238 @@ body.edit-mode .banner-sort-list { display: flex; }
   white-space: nowrap;
 }
 
+/* ========== Booking Calendar ========== */
+.booking-section {
+  margin-top: 32px;
+  position: relative;
+}
+
+.booking-config-edit {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.booking-config-edit .btn-edit {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+body.edit-mode .booking-config-edit { display: block; }
+
+.booking-no-config {
+  color: var(--text-light);
+  text-align: center;
+  padding: 32px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  margin-top: 16px;
+}
+
+.booking-calendar-wrap {
+  margin-top: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.booking-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+  background: var(--primary);
+  color: var(--white);
+}
+
+.booking-month-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  min-width: 140px;
+  text-align: center;
+}
+
+.booking-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  color: var(--white);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.booking-nav-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.booking-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+
+.booking-weekday {
+  text-align: center;
+  padding: 10px 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.booking-weekday:first-child {
+  color: #e74c3c;
+}
+
+.booking-weekday:last-child {
+  color: #3498db;
+}
+
+.booking-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 8px;
+}
+
+.booking-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  border-radius: 6px;
+  transition: var(--transition);
+  position: relative;
+  gap: 2px;
+}
+
+.booking-day.empty {
+  min-height: 0;
+}
+
+.booking-day-num {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.booking-day.disabled {
+  color: #ccc;
+  cursor: default;
+}
+
+.booking-day.available {
+  cursor: pointer;
+  color: var(--primary);
+  background: rgba(27,58,92,0.04);
+  font-weight: 600;
+}
+
+.booking-day.available:hover {
+  background: var(--primary);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(27,58,92,0.3);
+  transform: scale(1.05);
+}
+
+.booking-day.available:hover .booking-count {
+  color: rgba(255,255,255,0.8);
+}
+
+.booking-day.full {
+  background: rgba(231,76,60,0.08);
+  color: #999;
+  cursor: default;
+  text-decoration: line-through;
+}
+
+.booking-day.full .booking-day-num {
+  text-decoration: line-through;
+}
+
+.booking-count {
+  font-size: 0.65rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.booking-day.full .booking-count {
+  color: #e74c3c;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.booking-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.booking-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-available {
+  background: var(--primary);
+}
+
+.legend-full {
+  background: #e74c3c;
+}
+
+.legend-disabled {
+  background: #ddd;
+}
+
+@media (max-width: 768px) {
+  .booking-days {
+    gap: 1px;
+    padding: 4px;
+  }
+
+  .booking-day {
+    min-height: 48px;
+  }
+
+  .booking-day-num {
+    font-size: 0.85rem;
+  }
+
+  .booking-count {
+    font-size: 0.6rem;
+  }
+
+  .booking-legend {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
+
 /* ========== 로딩 스피너 ========== */
 .loading {
   display: flex;

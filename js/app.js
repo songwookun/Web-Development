@@ -531,12 +531,25 @@ async function renderCurriculum() {
 }
 
 /* ---------- 입학 테스트 페이지 ---------- */
+
+/* 달력/예약 상태 */
+let bookingCalendarDate = new Date(); /* 현재 표시 중인 달력 월 */
+let bookingCounts = {};               /* { '2026-03-20': 5, ... } */
+let bookingConfig = {};               /* Supabase test_booking_config */
+
+const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
 async function renderTest() {
-  const [steps, info, banners] = await Promise.all([
+  const [steps, info, banners, config] = await Promise.all([
     getData('test_steps'),
     getData('test_info'),
     getDataFiltered('banners', 'page', 'test'),
+    getData('test_booking_config'),
   ]);
+
+  bookingConfig = config;
+  /* URL 공백/줄바꿈 제거 */
+  if (bookingConfig.scriptUrl) bookingConfig.scriptUrl = bookingConfig.scriptUrl.replace(/\s/g, '');
 
   mainEl.innerHTML = `
     ${buildPageHeaderOrBanner(banners, 'test', '입학 테스트', '정확한 실력 진단으로 최적의 학습 과정을 안내합니다')}
@@ -574,13 +587,215 @@ async function renderTest() {
             <p><strong>비용:</strong> ${info.cost || ''}</p>
             <p><strong>문의:</strong> ${info.phone || ''}</p>
           </div>
-          ${info.formUrl ? `<a href="${info.formUrl}" target="_blank" rel="noopener" class="test-apply-btn">온라인 신청하기</a>` : ''}
+        </div>
+
+        <!-- 예약 달력 -->
+        <div class="booking-section">
+          <h3>테스트 일정 예약</h3>
+          <div class="booking-config-edit">
+            <button class="btn-edit" onclick="adminOpenModal('test_booking_config')">수정</button>
+          </div>
+          ${config.scriptUrl ? `
+            <div class="booking-calendar-wrap">
+              <div class="booking-calendar-header">
+                <button class="booking-nav-btn" onclick="bookingChangeMonth(-1)">&#8249;</button>
+                <span class="booking-month-title" id="booking-month-title"></span>
+                <button class="booking-nav-btn" onclick="bookingChangeMonth(1)">&#8250;</button>
+              </div>
+              <div class="booking-calendar" id="booking-calendar"></div>
+              <div class="booking-legend">
+                <span class="booking-legend-item"><span class="legend-dot legend-available"></span> 신청 가능</span>
+                <span class="booking-legend-item"><span class="legend-dot legend-full"></span> 마감</span>
+                <span class="booking-legend-item"><span class="legend-dot legend-disabled"></span> 선택 불가</span>
+              </div>
+            </div>
+          ` : `
+            <p class="booking-no-config">관리자 모드에서 예약 설정(Apps Script URL)을 먼저 입력해주세요.</p>
+          `}
         </div>
       </div>
     </section>
   `;
   if (banners.length > 0) startBannerSlider();
   initSortable();
+
+  if (config.scriptUrl) {
+    bookingCalendarDate = new Date();
+    await bookingRenderCalendar();
+  }
+}
+
+/* 달력 월 변경 */
+async function bookingChangeMonth(delta) {
+  bookingCalendarDate.setMonth(bookingCalendarDate.getMonth() + delta);
+  await bookingRenderCalendar();
+}
+
+/* 달력 렌더링 */
+async function bookingRenderCalendar() {
+  const cal = document.getElementById('booking-calendar');
+  const titleEl = document.getElementById('booking-month-title');
+  if (!cal || !titleEl) return;
+
+  const year = bookingCalendarDate.getFullYear();
+  const month = bookingCalendarDate.getMonth();
+  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+  titleEl.textContent = `${year}년 ${month + 1}월`;
+
+  /* Apps Script에서 예약 현황 조회 */
+  try {
+    const res = await fetch(`${bookingConfig.scriptUrl}?action=counts&month=${monthStr}`);
+    const json = await res.json();
+    bookingCounts = json.counts || {};
+  } catch (err) {
+    console.error('예약 현황 조회 실패:', err);
+    bookingCounts = {};
+  }
+
+  const availableDays = bookingConfig.availableDays || [];
+  const maxPerDay = bookingConfig.maxPerDay || 20;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  /* 달력 그리드 생성 */
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+
+  let html = '<div class="booking-weekdays">';
+  DAY_NAMES.forEach(d => { html += `<span class="booking-weekday">${d}</span>`; });
+  html += '</div><div class="booking-days">';
+
+  /* 빈 칸 */
+  for (let i = 0; i < firstDay; i++) {
+    html += '<span class="booking-day empty"></span>';
+  }
+
+  /* 날짜 */
+  for (let d = 1; d <= lastDate; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dateObj.getDay();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const count = bookingCounts[dateStr] || 0;
+    const isAvailableDay = availableDays.includes(dayOfWeek);
+    const isPast = dateObj < today;
+    const isFull = count >= maxPerDay;
+
+    let cls = 'booking-day';
+    let onclick = '';
+
+    if (!isAvailableDay || isPast) {
+      cls += ' disabled';
+    } else if (isFull) {
+      cls += ' full';
+    } else {
+      cls += ' available';
+      onclick = `onclick="bookingOpenModal('${dateStr}')"`;
+    }
+
+    const countBadge = isAvailableDay && !isPast && count > 0
+      ? `<span class="booking-count">${count}/${maxPerDay}</span>`
+      : '';
+
+    html += `<span class="${cls}" ${onclick}>
+      <span class="booking-day-num">${d}</span>
+      ${countBadge}
+    </span>`;
+  }
+
+  html += '</div>';
+  cal.innerHTML = html;
+}
+
+/* 신청 모달 열기 */
+function bookingOpenModal(dateStr) {
+  const times = bookingConfig.availableTimes || ['16:00', '19:00', '20:00'];
+  const [y, m, d] = dateStr.split('-');
+  const dayName = DAY_NAMES[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+  const displayDate = `${y}년 ${Number(m)}월 ${Number(d)}일 (${dayName})`;
+
+  const overlay = document.getElementById('admin-modal-overlay');
+  document.getElementById('admin-modal-title').textContent = '입학 테스트 신청';
+
+  const formEl = document.getElementById('admin-modal-form');
+  formEl.innerHTML = `
+    <div class="form-group">
+      <label>선택 날짜</label>
+      <input type="text" value="${displayDate}" readonly style="background:#f5f6f8;cursor:default;">
+      <input type="hidden" id="f-booking-date" value="${dateStr}">
+    </div>
+    <div class="form-group">
+      <label>시간 선택</label>
+      <select id="f-booking-time" required>
+        <option value="">시간을 선택하세요</option>
+        ${times.map(t => `<option value="${t}">${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>이름</label>
+      <input type="text" id="f-booking-name" placeholder="이름을 입력하세요" required>
+    </div>
+    <div class="form-group">
+      <label>나이</label>
+      <input type="text" id="f-booking-age" placeholder="나이를 입력하세요" required>
+    </div>
+    <div class="form-group">
+      <label>연락처</label>
+      <input type="tel" id="f-booking-phone" placeholder="010-0000-0000" required>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
+      <button type="submit" class="btn-save">신청하기</button>
+    </div>
+  `;
+
+  formEl.onsubmit = async (e) => {
+    e.preventDefault();
+    const submitBtn = formEl.querySelector('.btn-save');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '처리 중...';
+
+    try {
+      const params = new URLSearchParams({
+        action: 'book',
+        name: document.getElementById('f-booking-name').value.trim(),
+        age: document.getElementById('f-booking-age').value.trim(),
+        phone: document.getElementById('f-booking-phone').value.trim(),
+        date: document.getElementById('f-booking-date').value,
+        time: document.getElementById('f-booking-time').value,
+        maxPerDay: bookingConfig.maxPerDay || 20,
+      });
+
+      const res = await fetch(`${bookingConfig.scriptUrl}?${params}`);
+      const text = await res.text();
+      console.log('Apps Script 응답:', text);
+
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseErr) {
+        alert('서버 응답 파싱 오류. 콘솔을 확인해주세요.');
+        console.error('파싱 오류:', parseErr, '원본 응답:', text);
+        return;
+      }
+
+      if (result.success) {
+        alert('입학 테스트 예약이 완료되었습니다!');
+        adminCloseModal();
+        await bookingRenderCalendar();
+      } else {
+        alert(result.error || '예약에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (err) {
+      alert('네트워크 오류: ' + err.message);
+      console.error('예약 오류:', err);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '신청하기';
+    }
+  };
+
+  overlay.classList.add('show');
 }
 
 /* ---------- 공지사항 목록 ---------- */

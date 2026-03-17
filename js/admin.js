@@ -400,6 +400,49 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
   adminCurrentEditId = editId;
   if (type === 'banners' && bannerPage) adminBannerPage = bannerPage;
 
+  /* 단일 객체: 예약 설정 */
+  if (type === 'test_booking_config') {
+    const config = await getData('test_booking_config');
+    document.getElementById('admin-modal-title').textContent = '입학 테스트 예약 설정';
+    const formEl = document.getElementById('admin-modal-form');
+
+    const currentDays = config.availableDays || [];
+    const currentTimes = config.availableTimes || ['16:00', '19:00', '20:00'];
+
+    formEl.innerHTML = `
+      <div class="form-group">
+        <label>지정 요일 (선택)</label>
+        <div class="booking-day-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+          ${['일', '월', '화', '수', '목', '금', '토'].map((d, i) => `
+            <label style="display:flex;align-items:center;gap:4px;font-weight:400;font-size:0.95rem;">
+              <input type="checkbox" class="f-avail-day" value="${i}" ${currentDays.includes(i) ? 'checked' : ''}>
+              ${d}
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label>시간대 (쉼표로 구분)</label>
+        <input type="text" id="f-avail-times" value="${currentTimes.join(', ')}" placeholder="16:00, 19:00, 20:00" required>
+      </div>
+      <div class="form-group">
+        <label>하루 최대 인원</label>
+        <input type="number" id="f-max-per-day" value="${config.maxPerDay || 20}" min="1" required>
+      </div>
+      <div class="form-group">
+        <label>Apps Script 웹앱 URL</label>
+        <input type="url" id="f-script-url" value="${config.scriptUrl || ''}" placeholder="https://script.google.com/macros/s/.../exec" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
+        <button type="submit" class="btn-save">저장</button>
+      </div>
+    `;
+    formEl.onsubmit = adminHandleSubmit;
+    document.getElementById('admin-modal-overlay').classList.add('show');
+    return;
+  }
+
   /* 단일 객체: 테스트 안내 */
   if (type === 'test_info') {
     const info = await getData('test_info');
@@ -701,6 +744,24 @@ async function adminHandleSubmit(e) {
 
   try {
     /* 단일 객체 저장 */
+    if (adminCurrentType === 'test_booking_config') {
+      const dayCheckboxes = document.querySelectorAll('.f-avail-day:checked');
+      const availableDays = [...dayCheckboxes].map(cb => Number(cb.value));
+      const timesStr = document.getElementById('f-avail-times').value;
+      const availableTimes = timesStr.split(',').map(t => t.trim()).filter(t => t);
+
+      const config = {
+        availableDays,
+        availableTimes,
+        maxPerDay: Number(document.getElementById('f-max-per-day').value) || 20,
+        scriptUrl: document.getElementById('f-script-url').value.trim(),
+      };
+      await saveData('test_booking_config', config);
+      adminCloseModal();
+      await navigate();
+      return;
+    }
+
     if (adminCurrentType === 'test_info') {
       const info = {
         schedule: document.getElementById('f-schedule').value.trim(),
