@@ -643,11 +643,9 @@ async function bookingRenderCalendar() {
 
   titleEl.textContent = `${year}년 ${month + 1}월`;
 
-  /* Apps Script에서 예약 현황 조회 */
+  /* Supabase에서 예약 현황 조회 (CORS 문제 없음) */
   try {
-    const res = await fetch(`${bookingConfig.scriptUrl}?action=counts&month=${monthStr}`);
-    const json = await res.json();
-    bookingCounts = json.counts || {};
+    bookingCounts = await getBookingCounts(monthStr);
   } catch (err) {
     console.error('예약 현황 조회 실패:', err);
     bookingCounts = {};
@@ -756,28 +754,31 @@ function bookingOpenModal(dateStr) {
     submitBtn.textContent = '처리 중...';
 
     try {
-      const params = new URLSearchParams({
-        action: 'book',
+      const bookDate = document.getElementById('f-booking-date').value;
+      const maxPerDay = bookingConfig.maxPerDay || 20;
+
+      /* Supabase에서 최신 카운트 확인 */
+      const monthStr = bookDate.substring(0, 7);
+      const freshCounts = await getBookingCounts(monthStr);
+      const currentCount = freshCounts[bookDate] || 0;
+
+      if (currentCount >= maxPerDay) {
+        alert(`해당 날짜는 정원(${maxPerDay}명)이 마감되었습니다.`);
+        adminCloseModal();
+        await bookingRenderCalendar();
+        return;
+      }
+
+      const booking = {
         name: document.getElementById('f-booking-name').value.trim(),
         age: document.getElementById('f-booking-age').value.trim(),
         phone: document.getElementById('f-booking-phone').value.trim(),
-        date: document.getElementById('f-booking-date').value,
+        date: bookDate,
         time: document.getElementById('f-booking-time').value,
-        maxPerDay: bookingConfig.maxPerDay || 20,
-      });
+      };
 
-      const res = await fetch(`${bookingConfig.scriptUrl}?${params}`);
-      const text = await res.text();
-      console.log('Apps Script 응답:', text);
-
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch (parseErr) {
-        alert('서버 응답 파싱 오류. 콘솔을 확인해주세요.');
-        console.error('파싱 오류:', parseErr, '원본 응답:', text);
-        return;
-      }
+      /* Supabase 저장 + Apps Script(스프레드시트) 병렬 저장 */
+      const result = await addBooking(booking, bookingConfig.scriptUrl);
 
       if (result.success) {
         alert('입학 테스트 예약이 완료되었습니다!');

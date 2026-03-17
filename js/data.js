@@ -11,6 +11,7 @@ const TABLE_NAMES = {
   test_steps: 'test_steps',
   test_info: 'test_info',
   test_booking_config: 'test_booking_config',
+  test_bookings: 'test_bookings',
   contacts: 'contacts',
   map_branches: 'map_branches',
   map_info: 'map_info',
@@ -140,6 +141,63 @@ async function getData(key) {
   /* 캐시 저장 */
   dataCache[key] = { data: result, time: now };
   return result;
+}
+
+/* ---------- 예약 카운트 조회 (월별) ---------- */
+async function getBookingCounts(month) {
+  const { data, error } = await supabaseClient
+    .from('test_bookings')
+    .select('booking_date')
+    .like('booking_date', `${month}%`);
+
+  if (error) {
+    console.error('getBookingCounts 오류:', error);
+    return {};
+  }
+
+  const counts = {};
+  data.forEach(row => {
+    const d = row.booking_date;
+    counts[d] = (counts[d] || 0) + 1;
+  });
+  return counts;
+}
+
+/* ---------- 예약 추가 (Supabase + Apps Script 동시 저장) ---------- */
+async function addBooking(booking, scriptUrl) {
+  /* 1) Supabase 저장 */
+  const { data, error } = await supabaseClient
+    .from('test_bookings')
+    .insert({
+      name: booking.name,
+      age: booking.age,
+      phone: booking.phone,
+      booking_date: booking.date,
+      booking_time: booking.time,
+    })
+    .select();
+
+  if (error) {
+    console.error('addBooking Supabase 오류:', error);
+    return { success: false, error: '예약 저장에 실패했습니다.' };
+  }
+
+  /* 2) Apps Script(스프레드시트) 저장 — 실패해도 Supabase 예약은 유지 */
+  try {
+    const params = new URLSearchParams({
+      action: 'book',
+      name: booking.name,
+      age: booking.age,
+      phone: booking.phone,
+      date: booking.date,
+      time: booking.time,
+    });
+    fetch(`${scriptUrl}?${params}`).catch(err =>
+      console.warn('스프레드시트 저장 실패 (무시):', err)
+    );
+  } catch (_) { /* 스프레드시트 실패는 무시 */ }
+
+  return { success: true };
 }
 
 /* ---------- 단일 객체 저장 - test_info, map_info용 (UPSERT) ---------- */
