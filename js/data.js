@@ -182,10 +182,12 @@ async function addBooking(booking, scriptUrl) {
     return { success: false, error: '예약 저장에 실패했습니다.' };
   }
 
-  /* 2) Apps Script(스프레드시트) 저장 — 실패해도 Supabase 예약은 유지 */
+  /* 2) Apps Script(스프레드시트) 저장 — Supabase ID 포함 */
+  const supabaseId = data && data[0] ? data[0].id : null;
   try {
     const params = new URLSearchParams({
       action: 'book',
+      id: supabaseId || '',
       name: booking.name,
       age: booking.age,
       phone: booking.phone,
@@ -198,6 +200,47 @@ async function addBooking(booking, scriptUrl) {
   } catch (_) { /* 스프레드시트 실패는 무시 */ }
 
   return { success: true };
+}
+
+/* ---------- 예약 삭제 (Supabase + 스프레드시트 동기화) ---------- */
+async function deleteBooking(id, scriptUrl) {
+  /* 1) Supabase에서 삭제 */
+  const { error } = await supabaseClient
+    .from('test_bookings')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('deleteBooking Supabase 오류:', error);
+    return { success: false, error: '삭제에 실패했습니다.' };
+  }
+
+  /* 2) Apps Script에 삭제 요청 — 스프레드시트에서도 해당 행 제거 */
+  if (scriptUrl) {
+    try {
+      const params = new URLSearchParams({ action: 'delete', id: String(id) });
+      fetch(`${scriptUrl}?${params}`).catch(err =>
+        console.warn('스프레드시트 삭제 실패 (무시):', err)
+      );
+    } catch (_) { /* 무시 */ }
+  }
+
+  return { success: true };
+}
+
+/* ---------- 특정 날짜 예약 목록 조회 ---------- */
+async function getBookingsByDate(date) {
+  const { data, error } = await supabaseClient
+    .from('test_bookings')
+    .select('*')
+    .eq('booking_date', date)
+    .order('booking_time', { ascending: true });
+
+  if (error) {
+    console.error('getBookingsByDate 오류:', error);
+    return [];
+  }
+  return data || [];
 }
 
 /* ---------- 단일 객체 저장 - test_info, map_info용 (UPSERT) ---------- */

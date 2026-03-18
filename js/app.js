@@ -684,11 +684,25 @@ async function bookingRenderCalendar() {
 
     if (!isAvailableDay || isPast) {
       cls += ' disabled';
+      /* 편집 모드: 지난/비활성 날짜도 예약 목록 확인 가능 */
+      if (document.body.classList.contains('edit-mode') && isAvailableDay && count > 0) {
+        onclick = `onclick="bookingShowList('${dateStr}')"`;
+        cls = cls.replace(' disabled', ' admin-clickable');
+      }
     } else if (isFull) {
       cls += ' full';
+      /* 편집 모드: 마감된 날짜도 클릭하여 목록 확인/삭제 가능 */
+      if (document.body.classList.contains('edit-mode')) {
+        onclick = `onclick="bookingShowList('${dateStr}')"`;
+      }
     } else {
       cls += ' available';
-      onclick = `onclick="bookingOpenModal('${dateStr}')"`;
+      /* 편집 모드(관리자): 예약이 있으면 목록 먼저 보여줌 */
+      if (document.body.classList.contains('edit-mode') && count > 0) {
+        onclick = `onclick="bookingShowList('${dateStr}')"`;
+      } else {
+        onclick = `onclick="bookingOpenModal('${dateStr}')"`;
+      }
     }
 
     const countBadge = isAvailableDay && !isPast && count > 0
@@ -797,6 +811,75 @@ function bookingOpenModal(dateStr) {
   };
 
   overlay.classList.add('show');
+}
+
+/* ---------- 관리자 예약 목록/삭제 모달 ---------- */
+async function bookingShowList(dateStr) {
+  if (!adminIsAuthed()) return;
+
+  const [y, m, d] = dateStr.split('-');
+  const dayName = DAY_NAMES[new Date(Number(y), Number(m) - 1, Number(d)).getDay()];
+  const displayDate = `${y}년 ${Number(m)}월 ${Number(d)}일 (${dayName})`;
+
+  const overlay = document.getElementById('admin-modal-overlay');
+  document.getElementById('admin-modal-title').textContent = `예약 목록 — ${displayDate}`;
+
+  const formEl = document.getElementById('admin-modal-form');
+  formEl.innerHTML = '<p style="text-align:center;color:#888;">불러오는 중...</p>';
+  formEl.onsubmit = (e) => e.preventDefault();
+  overlay.classList.add('show');
+
+  const bookings = await getBookingsByDate(dateStr);
+
+  if (bookings.length === 0) {
+    formEl.innerHTML = `
+      <p style="text-align:center;color:#888;padding:20px 0;">예약이 없습니다.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="adminCloseModal()">닫기</button>
+      </div>
+    `;
+    return;
+  }
+
+  formEl.innerHTML = `
+    <div class="booking-list-admin">
+      ${bookings.map((b, idx) => `
+        <div class="booking-list-item" data-booking-id="${b.id}">
+          <div class="booking-list-info">
+            <span class="booking-list-num">${idx + 1}</span>
+            <span class="booking-list-time">${b.booking_time}</span>
+            <span class="booking-list-name">${b.name}</span>
+            <span class="booking-list-detail">${b.age}세 · ${b.phone}</span>
+          </div>
+          <button class="booking-list-del" onclick="bookingDeleteOne(${b.id}, '${dateStr}')">삭제</button>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button type="button" class="btn-cancel" onclick="adminCloseModal()">닫기</button>
+      <button type="button" class="btn-save" onclick="bookingOpenModal('${dateStr}')">+ 예약 추가</button>
+    </div>
+  `;
+}
+
+/* 개별 예약 삭제 (Supabase + 스프레드시트 동시 삭제) */
+async function bookingDeleteOne(id, dateStr) {
+  if (!confirm('이 예약을 삭제하시겠습니까?')) return;
+
+  const btn = document.querySelector(`[data-booking-id="${id}"] .booking-list-del`);
+  if (btn) { btn.disabled = true; btn.textContent = '삭제 중...'; }
+
+  const result = await deleteBooking(id, bookingConfig.scriptUrl);
+
+  if (result.success) {
+    /* 목록 새로고침 */
+    await bookingShowList(dateStr);
+    /* 달력도 새로고침 */
+    await bookingRenderCalendar();
+  } else {
+    alert(result.error || '삭제에 실패했습니다.');
+    if (btn) { btn.disabled = false; btn.textContent = '삭제'; }
+  }
 }
 
 /* ---------- 공지사항 목록 ---------- */
