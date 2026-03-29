@@ -158,17 +158,15 @@ async function getBookingCounts(month) {
 
 /* ---------- 예약 추가 (Supabase + Apps Script 동시 저장) ---------- */
 async function addBooking(booking, scriptUrl) {
-  /* 1) Supabase 저장 */
-  const { data, error } = await supabaseClient
-    .from('test_bookings')
-    .insert({
-      name: booking.name,
-      age: booking.age,
-      phone: booking.phone,
-      booking_date: booking.date,
-      booking_time: booking.time,
-    })
-    .select();
+  /* 1) Supabase 저장 — RPC 함수로 ID 반환받음 */
+  const { data: newId, error } = await supabaseClient
+    .rpc('insert_booking', {
+      p_name: booking.name,
+      p_age: booking.age,
+      p_phone: booking.phone,
+      p_date: booking.date,
+      p_time: booking.time,
+    });
 
   if (error) {
     console.error('addBooking Supabase 오류:', error);
@@ -179,7 +177,6 @@ async function addBooking(booking, scriptUrl) {
   }
 
   /* 2) Apps Script(스프레드시트) 저장 — Supabase ID 포함 */
-  const supabaseId = data && data[0] ? data[0].id : null;
   try {
     const ts = Date.now();
     fetch(scriptUrl, {
@@ -189,7 +186,7 @@ async function addBooking(booking, scriptUrl) {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'book',
-        id: supabaseId || '',
+        id: newId || '',
         name: booking.name,
         age: booking.age,
         phone: booking.phone,
