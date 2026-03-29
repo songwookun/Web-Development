@@ -181,6 +181,8 @@ async function addBooking(booking, scriptUrl) {
     const ts = Date.now();
     fetch(scriptUrl, {
       method: 'POST',
+      redirect: 'follow',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action: 'book',
@@ -220,6 +222,8 @@ async function deleteBooking(id, scriptUrl) {
       const ts = Date.now();
       fetch(scriptUrl, {
         method: 'POST',
+        redirect: 'follow',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ action: 'delete', id: String(id), _ts: ts, _origin: location.origin }),
       }).catch(err =>
