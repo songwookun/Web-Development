@@ -172,6 +172,9 @@ async function addBooking(booking, scriptUrl) {
 
   if (error) {
     console.error('addBooking Supabase 오류:', error);
+    if (error.code === '23505') {
+      return { success: false, error: '같은 연락처로 해당 날짜에 이미 예약되어 있습니다.' };
+    }
     return { success: false, error: '예약 저장에 실패했습니다.' };
   }
 
