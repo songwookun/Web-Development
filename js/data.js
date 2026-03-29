@@ -143,24 +143,17 @@ async function getData(key) {
   return result;
 }
 
-/* ---------- 예약 카운트 조회 (월별) ---------- */
+/* ---------- 예약 카운트 조회 (월별) — RPC 서버 함수 사용 ---------- */
 async function getBookingCounts(month) {
   const { data, error } = await supabaseClient
-    .from('test_bookings')
-    .select('booking_date')
-    .like('booking_date', `${month}%`);
+    .rpc('get_booking_counts', { target_month: month });
 
   if (error) {
     console.error('getBookingCounts 오류:', error);
     return {};
   }
 
-  const counts = {};
-  data.forEach(row => {
-    const d = row.booking_date;
-    counts[d] = (counts[d] || 0) + 1;
-  });
-  return counts;
+  return data || {};
 }
 
 /* ---------- 예약 추가 (Supabase + Apps Script 동시 저장) ---------- */
@@ -185,16 +178,19 @@ async function addBooking(booking, scriptUrl) {
   /* 2) Apps Script(스프레드시트) 저장 — Supabase ID 포함 */
   const supabaseId = data && data[0] ? data[0].id : null;
   try {
-    const params = new URLSearchParams({
-      action: 'book',
-      id: supabaseId || '',
-      name: booking.name,
-      age: booking.age,
-      phone: booking.phone,
-      date: booking.date,
-      time: booking.time,
-    });
-    fetch(`${scriptUrl}?${params}`).catch(err =>
+    fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'book',
+        id: supabaseId || '',
+        name: booking.name,
+        age: booking.age,
+        phone: booking.phone,
+        date: booking.date,
+        time: booking.time,
+      }),
+    }).catch(err =>
       console.warn('스프레드시트 저장 실패 (무시):', err)
     );
   } catch (_) { /* 스프레드시트 실패는 무시 */ }
@@ -218,8 +214,11 @@ async function deleteBooking(id, scriptUrl) {
   /* 2) Apps Script에 삭제 요청 — 스프레드시트에서도 해당 행 제거 */
   if (scriptUrl) {
     try {
-      const params = new URLSearchParams({ action: 'delete', id: String(id) });
-      fetch(`${scriptUrl}?${params}`).catch(err =>
+      fetch(scriptUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'delete', id: String(id) }),
+      }).catch(err =>
         console.warn('스프레드시트 삭제 실패 (무시):', err)
       );
     } catch (_) { /* 무시 */ }
