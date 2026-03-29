@@ -178,6 +178,7 @@ async function addBooking(booking, scriptUrl) {
   /* 2) Apps Script(스프레드시트) 저장 — Supabase ID 포함 */
   const supabaseId = data && data[0] ? data[0].id : null;
   try {
+    const ts = Date.now();
     fetch(scriptUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
@@ -189,6 +190,8 @@ async function addBooking(booking, scriptUrl) {
         phone: booking.phone,
         date: booking.date,
         time: booking.time,
+        _ts: ts,
+        _origin: location.origin,
       }),
     }).catch(err =>
       console.warn('스프레드시트 저장 실패 (무시):', err)
@@ -214,10 +217,11 @@ async function deleteBooking(id, scriptUrl) {
   /* 2) Apps Script에 삭제 요청 — 스프레드시트에서도 해당 행 제거 */
   if (scriptUrl) {
     try {
+      const ts = Date.now();
       fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'delete', id: String(id) }),
+        body: JSON.stringify({ action: 'delete', id: String(id), _ts: ts, _origin: location.origin }),
       }).catch(err =>
         console.warn('스프레드시트 삭제 실패 (무시):', err)
       );
