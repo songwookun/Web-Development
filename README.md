@@ -85,6 +85,31 @@ Web/
 
 ---
 
+## 보안 점검 완료 (2026-03-29)
+
+### Supabase RLS (Row Level Security)
+- 모든 테이블: 읽기만 공개, 쓰기/수정/삭제는 인증된 관리자만 가능
+- `test_bookings`: 비로그인 사용자 조회 완전 차단 (개인정보 보호)
+- 예약 추가는 RPC 서버 함수(`insert_booking`)로 처리하여 비로그인 상태에서도 안전하게 동작
+
+### 클라이언트 노출 키
+- `SUPABASE_ANON_KEY` (`sb_publishable_`)는 공개용 키로 프론트엔드 노출이 의도된 설계
+- 실제 보안은 서버의 RLS 정책이 담당하므로 키 노출에 따른 보안 위험 없음
+- `service_role` 키는 클라이언트 코드에 포함되어 있지 않음
+
+### Apps Script 보안
+- GET 요청 차단, POST만 허용
+- origin 검증 (허용된 도메인만 수락)
+- 타임스탬프 검증 (5분 초과 요청 거부)
+- Supabase ID 존재 여부 검증 (가짜 데이터 삽입 방지)
+
+### 기타 보안 조치
+- 개인정보 전송: GET 파라미터 대신 POST body 사용 (URL 노출 방지)
+- 중복 예약 방지: DB unique 제약조건 (`phone` + `booking_date`)
+- `localStorage` / `sessionStorage`: 민감 정보 저장 없음
+
+---
+
 ## 기술 스택
 
 - **HTML5** - 시맨틱 마크업
