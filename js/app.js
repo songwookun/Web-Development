@@ -5,6 +5,48 @@ const mainEl = document.getElementById('main-content');
 const navEl = document.getElementById('nav');
 const hamburgerEl = document.getElementById('hamburger');
 
+/* ---------- 배너 3D 패럴랙스 ---------- */
+function initBannerParallax() {
+  const slider = document.querySelector('.banner-slider');
+  if (!slider) return;
+
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  if (isMobile) return;
+
+  slider.addEventListener('mousemove', (e) => {
+    const rect = slider.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+
+    const activeSlide = slider.querySelector('.banner-slide:nth-child(' + (currentBannerIdx + 1) + ')');
+    if (!activeSlide) return;
+
+    /* 배너 전체 3D 틸트 */
+    activeSlide.style.transform = `rotateY(${x * 8}deg) rotateX(${y * -5}deg)`;
+
+    /* 텍스트는 반대로 더 크게 — 떠있는 느낌 */
+    const textLayer = activeSlide.querySelector('.hero-parallax-layer');
+    if (textLayer) {
+      textLayer.style.transform = `translate3d(${x * 40}px, ${y * 25}px, 50px)`;
+    }
+
+    /* 배경은 반대 방향으로 — 깊이감 */
+    const bgLayer = activeSlide.querySelector('.hero-bg-layer');
+    if (bgLayer) {
+      bgLayer.style.transform = `translate3d(${x * -20}px, ${y * -15}px, -30px) scale(1.1)`;
+    }
+  });
+
+  slider.addEventListener('mouseleave', () => {
+    const slides = slider.querySelectorAll('.banner-slide');
+    slides.forEach(s => { s.style.transform = ''; });
+    const layers = slider.querySelectorAll('.hero-parallax-layer');
+    const bgs = slider.querySelectorAll('.hero-bg-layer');
+    layers.forEach(l => { l.style.transform = ''; });
+    bgs.forEach(b => { b.style.transform = 'scale(1.1)'; });
+  });
+}
+
 /* ---------- 배너 슬라이더 ---------- */
 let bannerInterval = null;
 let currentBannerIdx = 0;
@@ -28,10 +70,14 @@ function restartBannerTimer() {
 
 function startBannerSlider() {
   stopBannerSlider();
-  if (bannerCount <= 1) return;
+  if (bannerCount <= 1) {
+    initBannerParallax();
+    return;
+  }
   currentBannerIdx = 0;
   restartBannerTimer();
   initBannerTouch();
+  initBannerParallax();
 }
 
 function updateBannerPosition() {
@@ -40,6 +86,15 @@ function updateBannerPosition() {
   if (!track) return;
   track.style.transform = `translateX(-${currentBannerIdx * 100}%)`;
   dots.forEach((dot, i) => dot.classList.toggle('active', i === currentBannerIdx));
+
+  /* 슬라이드 전환 시 텍스트 애니메이션 재트리거 */
+  const slides = track.querySelectorAll('.banner-slide');
+  slides.forEach((slide, i) => {
+    const anims = slide.querySelectorAll('.hero-anim-title, .hero-anim-subtitle, .hero-anim-btn');
+    if (i === currentBannerIdx) {
+      anims.forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; });
+    }
+  });
 }
 
 function goToBanner(idx) {
@@ -146,18 +201,28 @@ function noticeEditBtns(id) {
 /* ---------- 공통 배너 슬라이더 빌더 ---------- */
 function buildBannerSliderHtml(banners, pageName) {
   const slides = banners.map(b => {
-    const bgStyle = b.bgImage
-      ? `background:linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url('${b.bgImage}') center/cover no-repeat;`
+    const hasBg = !!b.bgImage;
+    const dim = b.bgDim !== undefined ? b.bgDim / 100 : 0.45;
+    const rawSize = b.bgSize || 'cover';
+    const isFit = rawSize === 'fit';
+    const bgSize = isFit ? '100% 100%' : rawSize;
+    const bgPos = b.bgPosition || 'center';
+    const bgOverlay = hasBg
+      ? `<div class="hero-bg-layer" style="background-image:linear-gradient(rgba(0,0,0,${dim}),rgba(0,0,0,${dim})),url('${b.bgImage}');background-size:${bgSize};background-position:${bgPos};background-repeat:no-repeat;"></div>`
       : '';
+    const heroStyle = hasBg ? '' : '';
     return `
-      <div class="banner-slide hero" ${bgStyle ? 'style="' + bgStyle + '"' : ''}>
+      <div class="banner-slide hero" ${heroStyle}>
+        ${bgOverlay}
         <div class="banner-edit-wrap">
           <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',${b.id},'${pageName}')">수정</button>
           <button class="btn-delete hero-edit-btn" onclick="adminHandleDelete('banners',${b.id})">삭제</button>
         </div>
-        <h1><span class="accent">${b.title}</span>${b.titleAfter}</h1>
-        <p>${b.subtitle}</p>
-        ${b.btnText && b.btnLink ? `<a href="${b.btnLink}" class="hero-btn">${b.btnText}</a>` : ''}
+        <div class="hero-parallax-layer">
+          <h1 class="hero-anim-title"><span class="accent">${b.title}</span>${b.titleAfter}</h1>
+          <p class="hero-anim-subtitle">${b.subtitle}</p>
+          ${b.btnText && b.btnLink ? `<a href="${b.btnLink}" class="hero-btn hero-anim-btn">${b.btnText}</a>` : ''}
+        </div>
       </div>
     `;
   }).join('');

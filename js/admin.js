@@ -560,6 +560,34 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
         <input type="text" id="f-bgImage" value="${item ? item.bgImage || '' : ''}" placeholder="https://...">
       </div>
       <div class="form-group">
+        <label>배경 크기</label>
+        <select id="f-bgSize">
+          <option value="cover" ${item && item.bgSize === 'cover' ? 'selected' : ''}>꽉 채우기 (cover)</option>
+          <option value="contain" ${item && item.bgSize === 'contain' ? 'selected' : ''}>이미지 전체 보기 (contain)</option>
+          <option value="fit" ${item && item.bgSize === 'fit' ? 'selected' : ''}>이미지에 맞추기 (빈공간 없음)</option>
+          <option value="auto" ${item && item.bgSize === 'auto' ? 'selected' : ''}>원본 크기 (auto)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>배경 위치</label>
+        <select id="f-bgPosition">
+          <option value="center" ${!item || !item.bgPosition || item.bgPosition === 'center' ? 'selected' : ''}>중앙</option>
+          <option value="top" ${item && item.bgPosition === 'top' ? 'selected' : ''}>상단</option>
+          <option value="bottom" ${item && item.bgPosition === 'bottom' ? 'selected' : ''}>하단</option>
+          <option value="left" ${item && item.bgPosition === 'left' ? 'selected' : ''}>왼쪽</option>
+          <option value="right" ${item && item.bgPosition === 'right' ? 'selected' : ''}>오른쪽</option>
+          <option value="top left" ${item && item.bgPosition === 'top left' ? 'selected' : ''}>좌상단</option>
+          <option value="top right" ${item && item.bgPosition === 'top right' ? 'selected' : ''}>우상단</option>
+          <option value="bottom left" ${item && item.bgPosition === 'bottom left' ? 'selected' : ''}>좌하단</option>
+          <option value="bottom right" ${item && item.bgPosition === 'bottom right' ? 'selected' : ''}>우하단</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>배경 어둡기 (0 = 원본, 70 = 많이 어둡게)</label>
+        <input type="range" id="f-bgDim" min="0" max="80" value="${item && item.bgDim !== undefined ? item.bgDim : 45}" oninput="document.getElementById('f-bgDim-val').textContent=this.value+'%'">
+        <span id="f-bgDim-val" style="font-size:0.85rem;color:#666;">${item && item.bgDim !== undefined ? item.bgDim : 45}%</span>
+      </div>
+      <div class="form-group">
         <label>버튼 링크 URL (비우면 버튼 숨김)</label>
         <input type="text" id="f-btnLink" value="${item ? item.btnLink || '' : ''}" placeholder="예: #test 또는 https://...">
       </div>
@@ -796,6 +824,9 @@ async function adminHandleSubmit(e) {
         titleAfter: document.getElementById('f-titleAfter').value.trim(),
         subtitle: document.getElementById('f-subtitle').value.trim(),
         bgImage: document.getElementById('f-bgImage').value.trim(),
+        bgSize: document.getElementById('f-bgSize').value,
+        bgPosition: document.getElementById('f-bgPosition').value,
+        bgDim: parseInt(document.getElementById('f-bgDim').value, 10),
         btnText: document.getElementById('f-btnText').value.trim(),
         btnLink: document.getElementById('f-btnLink').value.trim(),
         page: adminBannerPage,

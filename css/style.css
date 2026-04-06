@@ -175,13 +175,129 @@ ul { list-style: none; }
   justify-content: center;
   min-height: 280px;
   box-sizing: border-box;
+  perspective: 800px;
+  overflow: hidden;
 }
 
+/* 3D 패럴랙스 레이어 */
+.hero-parallax-layer {
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+}
+
+.hero-bg-layer {
+  position: absolute;
+  inset: -40px;
+  z-index: 0;
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.1);
+}
+
+.hero { position: relative; }
+
+/* 배경 글로우 오브 — 계속 떠다니는 빛 효과 */
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero::before {
+  width: 350px;
+  height: 350px;
+  background: var(--accent);
+  top: -80px;
+  right: -60px;
+  animation: heroGlow1 6s ease-in-out infinite alternate;
+}
+
+.hero::after {
+  width: 280px;
+  height: 280px;
+  background: rgba(255,255,255,0.25);
+  bottom: -60px;
+  left: -40px;
+  animation: heroGlow2 8s ease-in-out infinite alternate;
+}
+
+@keyframes heroGlow1 {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.25; }
+  100% { transform: translate(-60px, 40px) scale(1.3); opacity: 0.4; }
+}
+
+@keyframes heroGlow2 {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.15; }
+  100% { transform: translate(50px, -30px) scale(1.2); opacity: 0.3; }
+}
+
+/* 텍스트 등장 애니메이션 — 더 드라마틱 */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(50px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.hero-anim-title {
+  animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both,
+             heroFloat 4s ease-in-out 1.2s infinite;
+  animation-delay: 0.1s, 1.2s;
+}
+
+.hero-anim-subtitle {
+  animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.3s;
+}
+
+.hero-anim-btn {
+  animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.5s;
+}
+
+/* 버튼 지속 글로우 펄스 */
+.hero-btn {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50px;
+  background: var(--accent);
+  opacity: 0;
+  z-index: -1;
+  filter: blur(12px);
+  animation: btnPulse 2.5s ease-in-out 1s infinite;
+}
+
+@keyframes btnPulse {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* 텍스트 그림자로 깊이감 */
 .hero h1 {
   font-size: clamp(1.4rem, 5vw, 2.4rem);
   margin-bottom: 16px;
   font-weight: 800;
   word-break: keep-all;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .hero h1 .accent { color: var(--accent); }
@@ -192,6 +308,7 @@ ul { list-style: none; }
   max-width: 600px;
   margin: 0 auto 32px;
   word-break: keep-all;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
 
 .hero-btn {
@@ -203,9 +320,15 @@ ul { list-style: none; }
   border-radius: 50px;
   font-size: 1rem;
   transition: var(--transition);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.2);
 }
 
-.hero-btn:hover { background: var(--accent-dark); color: var(--white); }
+.hero-btn:hover {
+  background: var(--accent-dark);
+  color: var(--white);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  transform: translateY(-2px);
+}
 
 /* ========== Banner Slider ========== */
 .banner-slider {
@@ -229,6 +352,8 @@ ul { list-style: none; }
   flex: 0 0 100%;
   box-sizing: border-box;
   overflow: hidden;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease-out;
 }
 
 .banner-dots {
@@ -274,6 +399,8 @@ body.edit-mode .banner-add-wrap { display: flex; }
   justify-content: flex-end;
   gap: 8px;
   margin-bottom: 16px;
+  position: relative;
+  z-index: 10;
 }
 
 body.edit-mode .banner-edit-wrap { display: flex; }
@@ -839,7 +966,7 @@ body.edit-mode .banner-edit-wrap { display: flex; }
     font-size: 1rem;
   }
 
-  .hero { padding: 40px 16px; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .hero { padding: 40px 16px; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; perspective: none; }
   .hero-btn { padding: 12px 28px; font-size: 0.9rem; }
 
   .section { padding: 32px 16px; }
@@ -866,7 +993,7 @@ body.edit-mode .banner-edit-wrap { display: flex; }
 }
 
 @media (max-width: 480px) {
-  .hero { padding: 28px 12px; min-height: 200px; }
+  .hero { padding: 28px 12px; min-height: 200px; perspective: none; }
   .hero h1 { font-size: 1.25rem; margin-bottom: 10px; }
   .hero p { font-size: 0.82rem; margin-bottom: 20px; }
   .hero-btn { padding: 10px 24px; font-size: 0.85rem; }
