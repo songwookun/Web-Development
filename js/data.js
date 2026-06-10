@@ -2,6 +2,31 @@
 /* localStorage 대신 Supabase 클라우드 DB에서 데이터를 읽고 씁니다. */
 /* 모든 CRUD 함수는 비동기(async)입니다. */
 
+/* ========== XSS 방지용 이스케이프 유틸 (전역) ========== */
+/* DB/사용자 입력값을 innerHTML에 넣기 전 반드시 esc()로 감쌀 것. */
+
+/* HTML 텍스트·속성 컨텍스트용: 특수문자를 엔티티로 변환 */
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+/* href/src 등 URL 컨텍스트용: javascript: 등 위험 스킴 차단 후 이스케이프 */
+function escUrl(s) {
+  const v = String(s ?? '').trim();
+  /* 스킴이 명시된 경우 http/https/tel/mailto/지도 앱 스킴만 허용, 그 외(#내부, 상대경로)는 통과 */
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v) && !/^(https?|tel|mailto):/i.test(v)) return '';
+  return esc(v);
+}
+
+/* CSS url('...') 컨텍스트용: 따옴표·괄호·백슬래시 제거 + 스킴 차단 */
+function escCss(s) {
+  const v = String(s ?? '').replace(/["'()\\<>]/g, '').trim();
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v) && !/^https?:/i.test(v)) return '';
+  return v;
+}
+
 /* ---------- 테이블명 매핑 ---------- */
 const TABLE_NAMES = {
   banners: 'banners',

@@ -208,20 +208,20 @@ function buildBannerSliderHtml(banners, pageName) {
     const bgSize = isFit ? '100% 100%' : rawSize;
     const bgPos = b.bgPosition || 'center';
     const bgOverlay = hasBg
-      ? `<div class="hero-bg-layer" style="background-image:linear-gradient(rgba(0,0,0,${dim}),rgba(0,0,0,${dim})),url('${b.bgImage}');background-size:${bgSize};background-position:${bgPos};background-repeat:no-repeat;"></div>`
+      ? `<div class="hero-bg-layer" style="background-image:linear-gradient(rgba(0,0,0,${dim}),rgba(0,0,0,${dim})),url('${escCss(b.bgImage)}');background-size:${esc(bgSize)};background-position:${esc(bgPos)};background-repeat:no-repeat;"></div>`
       : '';
     const heroStyle = hasBg ? '' : '';
     return `
       <div class="banner-slide hero" ${heroStyle}>
         ${bgOverlay}
         <div class="banner-edit-wrap">
-          <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',${b.id},'${pageName}')">수정</button>
+          <button class="btn-edit hero-edit-btn" onclick="adminOpenModal('banners',${b.id},'${esc(pageName)}')">수정</button>
           <button class="btn-delete hero-edit-btn" onclick="adminHandleDelete('banners',${b.id})">삭제</button>
         </div>
         <div class="hero-parallax-layer">
-          <h1 class="hero-anim-title"><span class="accent">${b.title}</span>${b.titleAfter}</h1>
-          <p class="hero-anim-subtitle">${b.subtitle}</p>
-          ${b.btnText && b.btnLink ? `<a href="${b.btnLink}" class="hero-btn hero-anim-btn">${b.btnText}</a>` : ''}
+          <h1 class="hero-anim-title"><span class="accent">${esc(b.title)}</span>${esc(b.titleAfter)}</h1>
+          <p class="hero-anim-subtitle">${esc(b.subtitle)}</p>
+          ${b.btnText && b.btnLink ? `<a href="${escUrl(b.btnLink)}" class="hero-btn hero-anim-btn">${esc(b.btnText)}</a>` : ''}
         </div>
       </div>
     `;
@@ -237,7 +237,7 @@ function buildBannerSliderHtml(banners, pageName) {
           <div class="banner-sort-item" data-id="${b.id}">
             <span class="drag-handle" data-drag-handle title="드래그하여 순서 변경">⠿</span>
             <span class="banner-sort-num">${i + 1}</span>
-            <span class="banner-sort-title">${b.title}${b.titleAfter}</span>
+            <span class="banner-sort-title">${esc(b.title)}${esc(b.titleAfter)}</span>
           </div>
         `).join('')}
       </div>`
@@ -276,12 +276,12 @@ function buildPageHeaderOrBanner(banners, pageName, title, subtitle) {
 /* ---------- 링크 헬퍼 (강사, 교육과정 공용) ---------- */
 function instructorLinkHtml(i) {
   if (!i.link) return '';
-  return `<a href="${i.link}" target="_blank" rel="noopener" class="instructor-link">${i.linkLabel || '더 보기'}</a>`;
+  return `<a href="${escUrl(i.link)}" target="_blank" rel="noopener" class="instructor-link">${esc(i.linkLabel || '더 보기')}</a>`;
 }
 
 function curriculumLinkHtml(c) {
   if (!c.link) return '';
-  return `<a href="${c.link}" target="_blank" rel="noopener" class="instructor-link">${c.linkLabel || '더 보기'}</a>`;
+  return `<a href="${escUrl(c.link)}" target="_blank" rel="noopener" class="instructor-link">${esc(c.linkLabel || '더 보기')}</a>`;
 }
 
 /* ---------- 섹션 내용 렌더링 헬퍼 ---------- */
@@ -293,10 +293,10 @@ function renderSectionContent(content) {
   for (const line of lines) {
     if (line.startsWith('- ')) {
       if (!inList) { html += '<ul>'; inList = true; }
-      html += `<li>${line.slice(2)}</li>`;
+      html += `<li>${esc(line.slice(2))}</li>`;
     } else {
       if (inList) { html += '</ul>'; inList = false; }
-      if (line.trim()) html += `<p>${line}</p>`;
+      if (line.trim()) html += `<p>${esc(line)}</p>`;
     }
   }
   if (inList) html += '</ul>';
@@ -381,15 +381,15 @@ async function renderPhoneList() {
     if (hasPhone) {
       href = `tel:${c.phone.replace(/[^0-9+]/g, '')}`;
       targetAttr = '';
-      display = `<span class="fab-phone-name">${c.name}</span><span class="fab-phone-num">${c.phone}</span>`;
+      display = `<span class="fab-phone-name">${esc(c.name)}</span><span class="fab-phone-num">${esc(c.phone)}</span>`;
     } else if (hasLink) {
-      href = c.link;
+      href = escUrl(c.link);
       targetAttr = ' target="_blank" rel="noopener"';
-      display = `<span class="fab-phone-name">${c.name}</span><span class="fab-phone-num">${c.linkLabel || '바로가기'}</span>`;
+      display = `<span class="fab-phone-name">${esc(c.name)}</span><span class="fab-phone-num">${esc(c.linkLabel || '바로가기')}</span>`;
     } else {
       href = '#';
       targetAttr = '';
-      display = `<span class="fab-phone-name">${c.name}</span>`;
+      display = `<span class="fab-phone-name">${esc(c.name)}</span>`;
     }
 
     return `
@@ -454,11 +454,11 @@ async function renderHome() {
       <div class="card-grid">
         ${instructors.slice(0, 3).map(i => `
           <div class="card instructor-card">
-            <img class="card-img" src="${i.img || placeholderImg(i.name, 400, 300)}" alt="${i.name}">
+            <img class="card-img" src="${i.img ? escUrl(i.img) : placeholderImg(i.name, 400, 300)}" alt="${esc(i.name)}">
             <div class="card-body">
-              <h3>${i.name}</h3>
-              <p class="position">${i.position}</p>
-              <p>${i.desc}</p>
+              <h3>${esc(i.name)}</h3>
+              <p class="position">${esc(i.position)}</p>
+              <p>${esc(i.desc)}</p>
               ${instructorLinkHtml(i)}
               ${editBtns('instructors', i.id)}
             </div>
@@ -478,9 +478,9 @@ async function renderHome() {
         ${curriculum.slice(0, 3).map(c => `
           <div class="card">
             <div class="card-body">
-              <span class="card-tag">${c.tag}</span>
-              <h3>${c.title}</h3>
-              <p>${c.desc}</p>
+              <span class="card-tag">${esc(c.tag)}</span>
+              <h3>${esc(c.title)}</h3>
+              <p>${esc(c.desc)}</p>
               ${curriculumLinkHtml(c)}
               ${editBtns('curriculum', c.id)}
             </div>
@@ -501,8 +501,8 @@ async function renderHome() {
           ${testSteps.slice(0, 3).map((s, idx) => `
             <div class="test-step">
               <div class="step-num">${idx + 1}</div>
-              <h4>${s.title}</h4>
-              <p>${s.desc}</p>
+              <h4>${esc(s.title)}</h4>
+              <p>${esc(s.desc)}</p>
             </div>
           `).join('')}
         </div>
@@ -520,8 +520,8 @@ async function renderHome() {
         ${notices.slice(0, 5).map(n => `
           <a href="#notice/${n.id}" class="notice-item">
             ${n.important ? '<span class="notice-badge">중요</span>' : ''}
-            <span class="title">${n.title}</span>
-            <span class="date">${n.date}</span>
+            <span class="title">${esc(n.title)}</span>
+            <span class="date">${esc(n.date)}</span>
             ${noticeEditBtns(n.id)}
           </a>
         `).join('')}
@@ -546,11 +546,11 @@ async function renderInstructors() {
         ${instructors.map(i => `
           <div class="card instructor-card" data-id="${i.id}">
             ${dragHandle(i.id)}
-            <img class="card-img" src="${i.img || placeholderImg(i.name, 400, 300)}" alt="${i.name}">
+            <img class="card-img" src="${i.img ? escUrl(i.img) : placeholderImg(i.name, 400, 300)}" alt="${esc(i.name)}">
             <div class="card-body">
-              <h3>${i.name}</h3>
-              <p class="position">${i.position}</p>
-              <p>${i.desc}</p>
+              <h3>${esc(i.name)}</h3>
+              <p class="position">${esc(i.position)}</p>
+              <p>${esc(i.desc)}</p>
               ${instructorLinkHtml(i)}
               ${editBtns('instructors', i.id)}
             </div>
@@ -578,10 +578,10 @@ async function renderCurriculum() {
           <div class="card" data-id="${c.id}">
             ${dragHandle(c.id)}
             <div class="card-body">
-              <span class="card-tag">${c.tag}</span>
-              <h3>${c.title}</h3>
-              <p>${c.desc}</p>
-              <p style="margin-top:12px;font-size:0.85rem;"><strong>대상:</strong> ${c.target}</p>
+              <span class="card-tag">${esc(c.tag)}</span>
+              <h3>${esc(c.title)}</h3>
+              <p>${esc(c.desc)}</p>
+              <p style="margin-top:12px;font-size:0.85rem;"><strong>대상:</strong> ${esc(c.target)}</p>
               ${curriculumLinkHtml(c)}
               ${editBtns('curriculum', c.id)}
             </div>
@@ -626,8 +626,8 @@ async function renderTest() {
             <div class="test-step" data-id="${s.id}">
               ${dragHandle(s.id)}
               <div class="step-num">${idx + 1}</div>
-              <h4>${s.title}</h4>
-              <p>${s.desc}</p>
+              <h4>${esc(s.title)}</h4>
+              <p>${esc(s.desc)}</p>
               ${editBtns('test_steps', s.id)}
             </div>
           `).join('')}
@@ -645,12 +645,12 @@ async function renderTest() {
             <button class="btn-edit" onclick="adminOpenModal('test_info')">수정</button>
           </div>
           <div class="test-info-content">
-            <p><strong>테스트 일정:</strong> ${info.schedule || ''}</p>
-            <p><strong>소요 시간:</strong> ${info.duration || ''}</p>
-            <p><strong>테스트 영역:</strong> ${info.areas || ''}</p>
-            <p><strong>준비물:</strong> ${info.materials || ''}</p>
-            <p><strong>비용:</strong> ${info.cost || ''}</p>
-            <p><strong>문의:</strong> ${info.phone || ''}</p>
+            <p><strong>테스트 일정:</strong> ${esc(info.schedule || '')}</p>
+            <p><strong>소요 시간:</strong> ${esc(info.duration || '')}</p>
+            <p><strong>테스트 영역:</strong> ${esc(info.areas || '')}</p>
+            <p><strong>준비물:</strong> ${esc(info.materials || '')}</p>
+            <p><strong>비용:</strong> ${esc(info.cost || '')}</p>
+            <p><strong>문의:</strong> ${esc(info.phone || '')}</p>
           </div>
         </div>
 
@@ -805,7 +805,7 @@ function bookingOpenModal(dateStr) {
       <label>시간 선택</label>
       <select id="f-booking-time" required>
         <option value="">시간을 선택하세요</option>
-        ${times.map(t => `<option value="${t}">${t}</option>`).join('')}
+        ${times.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
@@ -912,11 +912,11 @@ async function bookingShowList(dateStr) {
         <div class="booking-list-item" data-booking-id="${b.id}">
           <div class="booking-list-info">
             <span class="booking-list-num">${idx + 1}</span>
-            <span class="booking-list-time">${b.booking_time}</span>
-            <span class="booking-list-name">${b.name}</span>
-            <span class="booking-list-detail">${b.age}세 · ${b.phone}</span>
+            <span class="booking-list-time">${esc(b.booking_time)}</span>
+            <span class="booking-list-name">${esc(b.name)}</span>
+            <span class="booking-list-detail">${esc(b.age)}세 · ${esc(b.phone)}</span>
           </div>
-          <button class="booking-list-del" onclick="bookingDeleteOne(${b.id}, '${dateStr}')">삭제</button>
+          <button class="booking-list-del" onclick="bookingDeleteOne(${b.id}, '${esc(dateStr)}')">삭제</button>
         </div>
       `).join('')}
     </div>
@@ -1016,8 +1016,8 @@ async function filterNoticeList(keyword = '', page = 1) {
   const noticeHtml = visibleNotices.map(n => `
     <a href="#notice/${n.id}" class="notice-item">
       ${n.important ? '<span class="notice-badge">중요</span>' : ''}
-      <span class="title">${n.title}</span>
-      <span class="date">${n.date}</span>
+      <span class="title">${esc(n.title)}</span>
+      <span class="date">${esc(n.date)}</span>
       ${noticeEditBtns(n.id)}
     </a>
   `).join('');
@@ -1041,8 +1041,9 @@ function goNoticePage(page) {
 }
 
 /* ---------- URL 자동 링크 변환 ---------- */
+/* 먼저 HTML을 이스케이프한 뒤 URL만 링크로 변환 (XSS 방지) */
 function linkify(text) {
-  return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  return esc(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 }
 
 /* ---------- 공지사항 상세 ---------- */
@@ -1062,8 +1063,8 @@ async function renderNoticeDetail(id) {
         <button class="btn-edit" onclick="adminOpenModal('notices',${notice.id})">수정</button>
         <button class="btn-delete" onclick="adminHandleDelete('notices',${notice.id})">삭제</button>
       </div>
-      <h2>${notice.title}</h2>
-      <p class="meta">${notice.date}</p>
+      <h2>${esc(notice.title)}</h2>
+      <p class="meta">${esc(notice.date)}</p>
       <div class="content">${linkify(notice.content)}</div>
       <a href="#notices" class="back-btn">목록으로</a>
     </div>
@@ -1090,7 +1091,7 @@ async function renderMap() {
       ${branches.map(b => `
         <div class="map-branch-card">
           <div class="map-branch-header">
-            <h3>${b.name} ${b.label ? '<span class="map-branch-label">' + b.label + '</span>' : ''}</h3>
+            <h3>${esc(b.name)} ${b.label ? '<span class="map-branch-label">' + esc(b.label) + '</span>' : ''}</h3>
             <div class="map-btn-group">
               <a href="https://map.kakao.com/link/search/${encodeURIComponent(b.mapQuery)}" target="_blank" rel="noopener" class="map-kakao-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1102,8 +1103,8 @@ async function renderMap() {
               </a>
             </div>
           </div>
-          <p class="map-branch-addr">${b.addr}</p>
-          ${b.note ? '<p class="map-branch-note">' + b.note + '</p>' : ''}
+          <p class="map-branch-addr">${esc(b.addr)}</p>
+          ${b.note ? '<p class="map-branch-note">' + esc(b.note) + '</p>' : ''}
           ${editBtns('map_branches', b.id)}
         </div>
       `).join('')}
@@ -1123,11 +1124,11 @@ async function renderMap() {
         <ul>
           ${transportLines.map(l => {
             const ci = l.indexOf(':');
-            if (ci > -1) return `<li><strong>${l.slice(0, ci + 1)}</strong>${l.slice(ci + 1)}</li>`;
-            return `<li>${l}</li>`;
+            if (ci > -1) return `<li><strong>${esc(l.slice(0, ci + 1))}</strong>${esc(l.slice(ci + 1))}</li>`;
+            return `<li>${esc(l)}</li>`;
           }).join('')}
         </ul>
-        <p style="margin-top:12px;"><strong>운영 시간:</strong> ${mapInfo.hours || ''}</p>
+        <p style="margin-top:12px;"><strong>운영 시간:</strong> ${esc(mapInfo.hours || '')}</p>
       </div>
 
       <h3>연락처</h3>
@@ -1135,12 +1136,12 @@ async function renderMap() {
         ${contacts.map(c => {
           const hasPhone = c.phone && c.phone.trim();
           const hasLink = c.link && c.link.trim();
-          let contactHtml = `<strong>${c.name}</strong>`;
+          let contactHtml = `<strong>${esc(c.name)}</strong>`;
           if (hasPhone) {
-            contactHtml += `<a href="tel:${c.phone.replace(/[^0-9+]/g, '')}">${c.phone}</a>`;
+            contactHtml += `<a href="tel:${c.phone.replace(/[^0-9+]/g, '')}">${esc(c.phone)}</a>`;
           }
           if (hasLink) {
-            contactHtml += `<a href="${c.link}" target="_blank" rel="noopener" class="contact-ext-link">${c.linkLabel || '바로가기'}</a>`;
+            contactHtml += `<a href="${escUrl(c.link)}" target="_blank" rel="noopener" class="contact-ext-link">${esc(c.linkLabel || '바로가기')}</a>`;
           }
           return `<div class="branch-contact-item">${contactHtml}</div>`;
         }).join('')}
@@ -1159,7 +1160,7 @@ async function renderTerms() {
     <div class="info-page">
       ${sections.map(s => `
         <div class="legal-section">
-          <h3>${s.title}</h3>
+          <h3>${esc(s.title)}</h3>
           ${renderSectionContent(s.content)}
           ${editBtns('terms', s.id)}
         </div>
@@ -1184,7 +1185,7 @@ async function renderPrivacy() {
     <div class="info-page">
       ${sections.map(s => `
         <div class="legal-section">
-          <h3>${s.title}</h3>
+          <h3>${esc(s.title)}</h3>
           ${renderSectionContent(s.content)}
           ${editBtns('privacy', s.id)}
         </div>

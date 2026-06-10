@@ -423,15 +423,15 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
       </div>
       <div class="form-group">
         <label>시간대 (쉼표로 구분)</label>
-        <input type="text" id="f-avail-times" value="${currentTimes.join(', ')}" placeholder="16:00, 19:00, 20:00" required>
+        <input type="text" id="f-avail-times" value="${esc(currentTimes.join(', '))}" placeholder="16:00, 19:00, 20:00" required>
       </div>
       <div class="form-group">
         <label>하루 최대 인원</label>
-        <input type="number" id="f-max-per-day" value="${config.maxPerDay || 20}" min="1" required>
+        <input type="number" id="f-max-per-day" value="${esc(config.maxPerDay || 20)}" min="1" required>
       </div>
       <div class="form-group">
         <label>Apps Script 웹앱 URL</label>
-        <input type="url" id="f-script-url" value="${config.scriptUrl || ''}" placeholder="https://script.google.com/macros/s/.../exec" required>
+        <input type="url" id="f-script-url" value="${esc(config.scriptUrl || '')}" placeholder="https://script.google.com/macros/s/.../exec" required>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
@@ -451,31 +451,31 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
     formEl.innerHTML = `
       <div class="form-group">
         <label>테스트 일정</label>
-        <input type="text" id="f-schedule" value="${info.schedule || ''}" required>
+        <input type="text" id="f-schedule" value="${esc(info.schedule || '')}" required>
       </div>
       <div class="form-group">
         <label>소요 시간</label>
-        <input type="text" id="f-duration" value="${info.duration || ''}" required>
+        <input type="text" id="f-duration" value="${esc(info.duration || '')}" required>
       </div>
       <div class="form-group">
         <label>테스트 영역</label>
-        <input type="text" id="f-areas" value="${info.areas || ''}" required>
+        <input type="text" id="f-areas" value="${esc(info.areas || '')}" required>
       </div>
       <div class="form-group">
         <label>준비물</label>
-        <input type="text" id="f-materials" value="${info.materials || ''}" required>
+        <input type="text" id="f-materials" value="${esc(info.materials || '')}" required>
       </div>
       <div class="form-group">
         <label>비용</label>
-        <input type="text" id="f-cost" value="${info.cost || ''}" required>
+        <input type="text" id="f-cost" value="${esc(info.cost || '')}" required>
       </div>
       <div class="form-group">
         <label>문의 전화</label>
-        <input type="text" id="f-phone" value="${info.phone || ''}" required>
+        <input type="text" id="f-phone" value="${esc(info.phone || '')}" required>
       </div>
       <div class="form-group">
         <label>구글폼 신청 링크 (선택)</label>
-        <input type="url" id="f-formUrl" value="${info.formUrl || ''}" placeholder="https://docs.google.com/forms/...">
+        <input type="url" id="f-formUrl" value="${esc(info.formUrl || '')}" placeholder="https://docs.google.com/forms/...">
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
@@ -495,11 +495,11 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
     formEl.innerHTML = `
       <div class="form-group">
         <label>대중교통 안내 (줄바꿈으로 항목 구분)</label>
-        <textarea id="f-transport" style="min-height:100px" required>${info.transport || ''}</textarea>
+        <textarea id="f-transport" style="min-height:100px" required>${esc(info.transport || '')}</textarea>
       </div>
       <div class="form-group">
         <label>운영 시간</label>
-        <input type="text" id="f-hours" value="${info.hours || ''}" required>
+        <input type="text" id="f-hours" value="${esc(info.hours || '')}" required>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="adminCloseModal()">취소</button>
@@ -541,23 +541,23 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
     banners: `
       <div class="form-group">
         <label>대상 페이지</label>
-        <input type="text" id="f-page" value="${pageLabels[bannerPageVal] || bannerPageVal}" readonly style="background:#f5f6f8;cursor:default;">
+        <input type="text" id="f-page" value="${esc(pageLabels[bannerPageVal] || bannerPageVal)}" readonly style="background:#f5f6f8;cursor:default;">
       </div>
       <div class="form-group">
         <label>강조 문구 (색상 적용)</label>
-        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 국어의 힘" required>
+        <input type="text" id="f-title" value="${item ? esc(item.title) : ''}" placeholder="예: 국어의 힘" required>
       </div>
       <div class="form-group">
         <label>이어지는 문구</label>
-        <input type="text" id="f-titleAfter" value="${item ? item.titleAfter : ''}" placeholder="예: 을 키우는 곳" required>
+        <input type="text" id="f-titleAfter" value="${item ? esc(item.titleAfter) : ''}" placeholder="예: 을 키우는 곳" required>
       </div>
       <div class="form-group">
         <label>설명</label>
-        <textarea id="f-subtitle" required>${item ? item.subtitle : ''}</textarea>
+        <textarea id="f-subtitle" required>${item ? esc(item.subtitle) : ''}</textarea>
       </div>
       <div class="form-group">
         <label>배경 이미지 URL (선택 · 비우면 기본 색상)</label>
-        <input type="text" id="f-bgImage" value="${item ? item.bgImage || '' : ''}" placeholder="https://...">
+        <input type="text" id="f-bgImage" value="${item ? esc(item.bgImage || '') : ''}" placeholder="https://...">
       </div>
       <div class="form-group">
         <label>배경 크기</label>
@@ -589,81 +589,81 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
       </div>
       <div class="form-group">
         <label>버튼 링크 URL (비우면 버튼 숨김)</label>
-        <input type="text" id="f-btnLink" value="${item ? item.btnLink || '' : ''}" placeholder="예: #test 또는 https://...">
+        <input type="text" id="f-btnLink" value="${item ? esc(item.btnLink || '') : ''}" placeholder="예: #test 또는 https://...">
       </div>
       <div class="form-group">
         <label>버튼 표시 이름 (비우면 버튼 숨김)</label>
-        <input type="text" id="f-btnText" value="${item ? item.btnText || '' : ''}" placeholder="예: 입학 테스트 신청">
+        <input type="text" id="f-btnText" value="${item ? esc(item.btnText || '') : ''}" placeholder="예: 입학 테스트 신청">
       </div>
     `,
     instructors: `
       <div class="form-group">
         <label>이름</label>
-        <input type="text" id="f-name" value="${item ? item.name : ''}" required>
+        <input type="text" id="f-name" value="${item ? esc(item.name) : ''}" required>
       </div>
       <div class="form-group">
         <label>직책</label>
-        <input type="text" id="f-position" value="${item ? item.position : ''}" placeholder="예: 대표 강사 · 국어 문학" required>
+        <input type="text" id="f-position" value="${item ? esc(item.position) : ''}" placeholder="예: 대표 강사 · 국어 문학" required>
       </div>
       <div class="form-group">
         <label>소개</label>
-        <textarea id="f-desc" required>${item ? item.desc : ''}</textarea>
+        <textarea id="f-desc" required>${item ? esc(item.desc) : ''}</textarea>
       </div>
       <div class="form-group">
         <label>이미지 URL (선택)</label>
-        <input type="text" id="f-img" value="${item ? item.img : ''}" placeholder="https://...">
+        <input type="text" id="f-img" value="${item ? esc(item.img) : ''}" placeholder="https://...">
       </div>
       <div class="form-group">
         <label>소개 링크 URL (선택)</label>
-        <input type="text" id="f-link" value="${item ? item.link || '' : ''}" placeholder="https://...">
+        <input type="text" id="f-link" value="${item ? esc(item.link || '') : ''}" placeholder="https://...">
       </div>
       <div class="form-group">
         <label>링크 표시 이름 (선택 · 비우면 "더 보기")</label>
-        <input type="text" id="f-linkLabel" value="${item ? item.linkLabel || '' : ''}" placeholder="예: 더 보기">
+        <input type="text" id="f-linkLabel" value="${item ? esc(item.linkLabel || '') : ''}" placeholder="예: 더 보기">
       </div>
     `,
     curriculum: `
       <div class="form-group">
         <label>과정명</label>
-        <input type="text" id="f-title" value="${item ? item.title : ''}" required>
+        <input type="text" id="f-title" value="${item ? esc(item.title) : ''}" required>
       </div>
       <div class="form-group">
         <label>구분</label>
-        <input type="text" id="f-tag" value="${item ? item.tag : ''}" placeholder="예: 기초, 심화, 파이널" required>
+        <input type="text" id="f-tag" value="${item ? esc(item.tag) : ''}" placeholder="예: 기초, 심화, 파이널" required>
       </div>
       <div class="form-group">
         <label>설명</label>
-        <textarea id="f-desc" required>${item ? item.desc : ''}</textarea>
+        <textarea id="f-desc" required>${item ? esc(item.desc) : ''}</textarea>
       </div>
       <div class="form-group">
         <label>대상</label>
-        <input type="text" id="f-target" value="${item ? item.target : ''}" placeholder="예: 고2 · 고3" required>
+        <input type="text" id="f-target" value="${item ? esc(item.target) : ''}" placeholder="예: 고2 · 고3" required>
       </div>
       <div class="form-group">
         <label>수업 시간</label>
-        <input type="text" id="f-schedule" value="${item ? item.schedule : ''}" placeholder="예: 월/수/금 16:00 ~ 18:00" required>
+        <input type="text" id="f-schedule" value="${item ? esc(item.schedule) : ''}" placeholder="예: 월/수/금 16:00 ~ 18:00" required>
       </div>
       <div class="form-group">
         <label>링크 URL (선택)</label>
-        <input type="text" id="f-link" value="${item ? item.link || '' : ''}" placeholder="https://...">
+        <input type="text" id="f-link" value="${item ? esc(item.link || '') : ''}" placeholder="https://...">
       </div>
       <div class="form-group">
         <label>링크 표시 이름 (선택 · 비우면 "더 보기")</label>
-        <input type="text" id="f-linkLabel" value="${item ? item.linkLabel || '' : ''}" placeholder="예: 더 보기">
+        <input type="text" id="f-linkLabel" value="${item ? esc(item.linkLabel || '') : ''}" placeholder="예: 더 보기">
       </div>
     `,
     notices: `
       <div class="form-group">
         <label>제목</label>
-        <input type="text" id="f-title" value="${item ? item.title : ''}" required>
+        <input type="text" id="f-title" value="${item ? esc(item.title) : ''}" required>
       </div>
       <div class="form-group">
         <label>날짜</label>
-        <input type="date" id="f-date" value="${item ? item.date : new Date().toISOString().slice(0, 10)}" required>
+        <input type="date" id="f-date" value="${item ? esc(item.date) : new Date().toISOString().slice(0, 10)}" required>
       </div>
       <div class="form-group">
         <label>내용</label>
-        <textarea id="f-content" style="min-height:200px" required>${item ? item.content : ''}</textarea>
+        <textarea id="f-content" style="min-height:200px" required>${item ? esc(item.content) : ''}</textarea>
       </div>
       <div class="form-group">
         <label>
@@ -675,71 +675,71 @@ async function adminOpenModal(type, editId = null, bannerPage = null) {
     test_steps: `
       <div class="form-group">
         <label>단계 제목</label>
-        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 전화 예약" required>
+        <input type="text" id="f-title" value="${item ? esc(item.title) : ''}" placeholder="예: 전화 예약" required>
       </div>
       <div class="form-group">
         <label>설명</label>
-        <textarea id="f-desc" required>${item ? item.desc : ''}</textarea>
+        <textarea id="f-desc" required>${item ? esc(item.desc) : ''}</textarea>
       </div>
     `,
     contacts: `
       <div class="form-group">
         <label>이름</label>
-        <input type="text" id="f-name" value="${item ? item.name : ''}" placeholder="예: 본관, 카카오톡 상담" required>
+        <input type="text" id="f-name" value="${item ? esc(item.name) : ''}" placeholder="예: 본관, 카카오톡 상담" required>
       </div>
       <div class="form-group">
         <label>전화번호 (선택 · 비우면 링크로 이동)</label>
-        <input type="tel" id="f-phone" value="${item ? item.phone || '' : ''}" placeholder="예: 02-1234-5678">
+        <input type="tel" id="f-phone" value="${item ? esc(item.phone || '') : ''}" placeholder="예: 02-1234-5678">
       </div>
       <div class="form-group">
         <label>링크 URL (선택)</label>
-        <input type="text" id="f-link" value="${item ? item.link || '' : ''}" placeholder="예: https://pf.kakao.com/...">
+        <input type="text" id="f-link" value="${item ? esc(item.link || '') : ''}" placeholder="예: https://pf.kakao.com/...">
       </div>
       <div class="form-group">
         <label>링크 표시 이름 (선택)</label>
-        <input type="text" id="f-linkLabel" value="${item ? item.linkLabel || '' : ''}" placeholder="예: 카카오톡 상담">
+        <input type="text" id="f-linkLabel" value="${item ? esc(item.linkLabel || '') : ''}" placeholder="예: 카카오톡 상담">
       </div>
     `,
     map_branches: `
       <div class="form-group">
         <label>캠퍼스 이름</label>
-        <input type="text" id="f-name" value="${item ? item.name : ''}" placeholder="예: 아르누보관" required>
+        <input type="text" id="f-name" value="${item ? esc(item.name) : ''}" placeholder="예: 아르누보관" required>
       </div>
       <div class="form-group">
         <label>라벨 (선택 · 예: 메인)</label>
-        <input type="text" id="f-label" value="${item ? item.label || '' : ''}" placeholder="예: 메인">
+        <input type="text" id="f-label" value="${item ? esc(item.label || '') : ''}" placeholder="예: 메인">
       </div>
       <div class="form-group">
         <label>주소</label>
-        <input type="text" id="f-addr" value="${item ? item.addr : ''}" required>
+        <input type="text" id="f-addr" value="${item ? esc(item.addr) : ''}" required>
       </div>
       <div class="form-group">
         <label>참고 사항 (선택)</label>
-        <input type="text" id="f-note" value="${item ? item.note || '' : ''}" placeholder="예: 한티역 1번 출구 오른쪽 약 100m">
+        <input type="text" id="f-note" value="${item ? esc(item.note || '') : ''}" placeholder="예: 한티역 1번 출구 오른쪽 약 100m">
       </div>
       <div class="form-group">
         <label>지도 검색어</label>
-        <input type="text" id="f-mapQuery" value="${item ? item.mapQuery : ''}" placeholder="예: 서울 강남구 도곡로 405" required>
+        <input type="text" id="f-mapQuery" value="${item ? esc(item.mapQuery) : ''}" placeholder="예: 서울 강남구 도곡로 405" required>
       </div>
     `,
     terms: `
       <div class="form-group">
         <label>제목</label>
-        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 제1조 (목적)" required>
+        <input type="text" id="f-title" value="${item ? esc(item.title) : ''}" placeholder="예: 제1조 (목적)" required>
       </div>
       <div class="form-group">
         <label>내용 ("- "로 시작하면 목록으로 표시)</label>
-        <textarea id="f-content" style="min-height:150px" required>${item ? item.content : ''}</textarea>
+        <textarea id="f-content" style="min-height:150px" required>${item ? esc(item.content) : ''}</textarea>
       </div>
     `,
     privacy: `
       <div class="form-group">
         <label>제목</label>
-        <input type="text" id="f-title" value="${item ? item.title : ''}" placeholder="예: 1. 개인정보의 수집 및 이용 목적" required>
+        <input type="text" id="f-title" value="${item ? esc(item.title) : ''}" placeholder="예: 1. 개인정보의 수집 및 이용 목적" required>
       </div>
       <div class="form-group">
         <label>내용 ("- "로 시작하면 목록으로 표시)</label>
-        <textarea id="f-content" style="min-height:150px" required>${item ? item.content : ''}</textarea>
+        <textarea id="f-content" style="min-height:150px" required>${item ? esc(item.content) : ''}</textarea>
       </div>
     `,
   };
